@@ -1,11 +1,17 @@
-import './App.css'
+import { BrowserRouter } from 'react-router-dom';
+import AppRoutes from './routes/AppRoutes';
+import Navbar from './components/common/Navbar';
+import Footer from './components/common/Footer';
 
-function App() {
+
+const App = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
-      Tailwind is Working! 🚀
-    </div>
-  )
-}
+    <BrowserRouter>
+      <Navbar />
+      <AppRoutes />
+      <Footer />
+    </BrowserRouter>
+  );
+};
 
-export default App
+export default App;
