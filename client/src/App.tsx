@@ -1,9 +1,17 @@
-import './App.css'
+import { BrowserRouter } from 'react-router-dom';
+import AppRoutes from './routes/AppRoutes';
+import Navbar from './components/common/Navbar';
+import Footer from './components/common/Footer';
 
-function App() {
+
+const App = () => {
   return (
-    <div>Now let's get started!</div>
-  )
-}
+    <BrowserRouter>
+      <Navbar />
+      <AppRoutes />
+      <Footer />
+    </BrowserRouter>
+  );
+};
 
-export default App
+export default App;
