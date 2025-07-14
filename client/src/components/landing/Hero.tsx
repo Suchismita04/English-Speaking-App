@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 const backgrounds = [
   'https://images.unsplash.com/photo-1607746882042-944635dfe10e',
-  'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c',
-  'https://images.unsplash.com/photo-1707246719682-6841358980c0?q=80&w=1469&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  'https://images.unsplash.com/photo-1586232880819-5d06b672c942?q=80&w=1567&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+  'https://images.unsplash.com/photo-1688989667207-4dce9c98ed2f?q=80&w=1532&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
 ];
 
 const Hero = () => {
@@ -19,6 +19,7 @@ const Hero = () => {
   }, []);
 
   return (
+    <>
     <section
       className="w-full min-h-screen pt-20 relative bg-cover bg-center transition-all duration-1000"
       style={{ backgroundImage: `url(${backgrounds[bgIndex]})` }}
@@ -175,7 +176,7 @@ const Hero = () => {
       </button>
 
       {/* === Social Buttons also shown in Signup === */}
-      {/* <div className="mt-6">
+      <div className="mt-6">
         <p className="text-sm text-center text-white/70 mb-4">Or continue with</p>
         <div className="flex justify-center gap-4 flex-wrap">
                   <button
@@ -208,13 +209,14 @@ const Hero = () => {
             Instagram
           </button>
         </div>
-      </div> */}
+      </div>
     </form>
   )}
 </div>
         </div>
       </div>
     </section>
+</>
   );
 };
 
