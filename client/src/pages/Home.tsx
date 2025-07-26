@@ -1,10 +1,10 @@
-import About from '../components/landing/About';
-import Contact from '../components/landing/Contact';
-import Courses from '../components/landing/Courses';
-import Features from '../components/landing/Features';
-import Hero from '../components/landing/Hero';
-import HowItWorks from '../components/landing/How_it_works';
-import Testimonials from '../components/landing/Testimonials';
+import About from '../components/home/About';
+import Contact from '../components/home/Contact';
+import Courses from '../components/home/Courses';
+import Features from '../components/home/Features';
+import Hero from '../components/home/Hero';
+import HowItWorks from '../components/home/How_it_works';
+import Testimonials from '../components/home/Testimonials';
 
 const Home = () => {
   return (
