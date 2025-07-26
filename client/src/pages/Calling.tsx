@@ -1,7 +1,9 @@
+import Call from "../components/calling/Call";
+
 const Calling = () => {
   return (
     <>
-      This is the Calling page.
+      <Call />
     </>
   );
 };
