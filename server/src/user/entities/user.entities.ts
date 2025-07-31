@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { SessionRoom } from "src/session-room/entities/session-room.entity";
 import { SessionMembershipDetail } from "src/session-membership/entities/session-membership-details.entity";
+import { Exclude } from "class-transformer";
 
 @Entity({ name: 'Users' })
 export class User {
@@ -13,6 +14,7 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   user_email: string;
 
+  @Exclude()
   @Column({ type: 'varchar', length: 255 })
   password: string;
 
