@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "src/user/entities/user.entities";
 import { Repository } from "typeorm";
 import * as bcrypt from "bcrypt"
+import { JwtService } from "@nestjs/jwt";
 
 
 @Injectable()
@@ -10,8 +11,9 @@ export class AuthService {
 
     constructor(
         @InjectRepository(User)
-        private userRepo: Repository<User>
-    ) {}
+        private userRepo: Repository<User>,
+        private jwtService: JwtService
+    ) { }
 
     async signIn(username: string, pass: string): Promise<any> {
         const user = await this.userRepo.findOne({
@@ -21,7 +23,20 @@ export class AuthService {
         if (!user) {
             throw new UnauthorizedException();
         }
-        bcrypt.compareSync(pass, user?.password);
+
+        const hasMatched = bcrypt.compareSync(pass, user?.password);
+
+        if (!hasMatched) {
+            throw new UnauthorizedException();
+        }
+
+        // JWT authentication
+        const { password, ...userDetails } = user
+        const payload = { sub: userDetails.id, username: userDetails.user_name }
+
+        return {
+            access_token: await this.jwtService.signAsync(payload)
+        }
     }
 
     async signOut() {

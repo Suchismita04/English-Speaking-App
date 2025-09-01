@@ -13,7 +13,7 @@ import { AuthService } from "./auth.service";
         UserModule,
         PassportModule,
         JwtModule.register({
-            secret:'',// will update
+            secret:'THIS IS A SECRET',// will update
             signOptions:{expiresIn:'5m'}
         })
     ],
