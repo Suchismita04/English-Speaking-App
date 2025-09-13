@@ -7,7 +7,7 @@ import { SessionMembershipDetailController } from './session-membership.controll
 
 @Module({
   imports: [TypeOrmModule.forFeature([SessionMembershipDetail])],
-  controllers: [SessionMembershipDetailController],
-  providers: [SessionMembershipDetailService],
+  // controllers: [SessionMembershipDetailController],
+  // providers: [SessionMembershipDetailService],
 })
 export class SessionMembershipDetailModule {}
