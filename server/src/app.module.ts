@@ -7,6 +7,7 @@ import { typeOrmConfig } from './config/typeorm.config';
 import { UserModule } from './user/user.module';
 import { SessionRoomModule } from './session-room/session-room.module';
 import { SessionMembershipDetailModule } from './session-membership/session-membership.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SessionMembershipDetailModule } from './session-membership/session-memb
     UserModule,
     SessionRoomModule,
     SessionMembershipDetailModule,
+    AuthModule
   ],
   controllers: [AppController],
   providers: [AppService],

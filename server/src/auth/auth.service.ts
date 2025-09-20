@@ -15,7 +15,7 @@ export class AuthService {
         private jwtService: JwtService
     ) { }
 
-    async signIn(username: string, pass: string): Promise<any> {
+    async signIn(username: string, plainPassword: string): Promise<any> {
         const user = await this.userRepo.findOne({
             where: { user_name: username }
         });
@@ -24,7 +24,7 @@ export class AuthService {
             throw new UnauthorizedException();
         }
 
-        const hasMatched = bcrypt.compareSync(pass, user?.password);
+        const hasMatched = bcrypt.compareSync(plainPassword, user?.password);
 
         if (!hasMatched) {
             throw new UnauthorizedException();
