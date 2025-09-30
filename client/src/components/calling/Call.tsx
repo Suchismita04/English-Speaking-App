@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Users, Video, TrendingUp, User as UserIcon, Plus, Crown, Globe, Clock, Award, Calendar, MessageCircle, Mail } from "lucide-react";
 
 type User = {
   id: string;
@@ -11,45 +12,75 @@ type User = {
   country: string;
 };
 
+type Room = {
+  id: string;
+  name: string;
+  host: string;
+  participants: number;
+  maxParticipants: number;
+  level: "Beginner" | "Intermediate" | "Advanced" | "Mixed";
+  topic: string;
+  isLive: boolean;
+};
+
+type ProgressData = {
+  totalCalls: number;
+  totalHours: number;
+  streak: number;
+  level: string;
+  weeklyProgress: { day: string; minutes: number }[];
+};
+
 const dummyUsers: User[] = [
-  {
-    id: "1",
-    name: "Ariana",
-    avatar: "/assets/images/testimonial2.png",
-    isOnline: true,
-    onCall: false,
-    level: "Beginner",
-    gender: "Female",
-    country: "USA",
-  },
-  {
-    id: "2",
-    name: "David",
-    avatar: "/avatars/2.jpg",
-    isOnline: true,
-    onCall: true,
-    level: "Intermediate",
-    gender: "Male",
-    country: "India",
-  },
-  {
-    id: "3",
-    name: "Sophie",
-    avatar: "/avatars/3.jpg",
-    isOnline: false,
-    onCall: false,
-    level: "Advanced",
-    gender: "Female",
-    country: "UK",
-  },
+  { id: "1", name: "Ariana", avatar: "/src/assets/images/testimonial1.png", isOnline: true, onCall: false, level: "Beginner", gender: "Female", country: "USA" },
+  { id: "2", name: "David", avatar: "/src/assets/images/testimonial2.png", isOnline: true, onCall: true, level: "Intermediate", gender: "Male", country: "India" },
+  { id: "3", name: "Sophie", avatar: "/src/assets/images/testimonial3.png", isOnline: false, onCall: false, level: "Advanced", gender: "Female", country: "UK" },
+  { id: "4", name: "Carlos", avatar: "/src/assets/images/testimonial1.png", isOnline: true, onCall: false, level: "Intermediate", gender: "Male", country: "Spain" },
 ];
 
-const Call = () => {
+const dummyRooms: Room[] = [
+  { id: "r1", name: "Daily English Practice", host: "Michael", participants: 8, maxParticipants: 15, level: "Beginner", topic: "Basic Conversation", isLive: true },
+  { id: "r2", name: "Business English Hub", host: "Sarah", participants: 12, maxParticipants: 20, level: "Advanced", topic: "Professional Communication", isLive: true },
+  { id: "r3", name: "Grammar Warriors", host: "James", participants: 5, maxParticipants: 10, level: "Intermediate", topic: "Grammar & Writing", isLive: true },
+  { id: "r4", name: "Movie Discussion Club", host: "Emma", participants: 15, maxParticipants: 25, level: "Mixed", topic: "Entertainment & Culture", isLive: true },
+];
 
- const [search, setSearch] = useState("");
+const progressData: ProgressData = {
+  totalCalls: 47,
+  totalHours: 23.5,
+  streak: 12,
+  level: "Intermediate",
+  weeklyProgress: [
+    { day: "Mon", minutes: 45 },
+    { day: "Tue", minutes: 60 },
+    { day: "Wed", minutes: 30 },
+    { day: "Thu", minutes: 75 },
+    { day: "Fri", minutes: 50 },
+    { day: "Sat", minutes: 90 },
+    { day: "Sun", minutes: 40 },
+  ],
+};
+
+const currentUser = {
+  name: "Alex Johnson",
+  avatar: "/src/assets/images/testimonial1.png",
+  email: "alex.johnson@email.com",
+  level: "Intermediate",
+  country: "USA",
+  memberSince: "January 2024",
+  isPremium: false,
+};
+
+const Call = () => {
+  const [activeTab, setActiveTab] = useState<"call" | "rooms" | "progress" | "profile">("call");
+  const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("All");
   const [levelFilter, setLevelFilter] = useState("All");
   const [countryFilter, setCountryFilter] = useState("All");
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [roomName, setRoomName] = useState("");
+  const [roomTopic, setRoomTopic] = useState("");
 
   const filteredUsers = dummyUsers.filter(
     (user) =>
@@ -67,139 +98,687 @@ const Call = () => {
     console.log("Random stranger call initiated.");
   };
 
+  const handleJoinRoom = (roomId: string) => {
+    console.log("Joining room:", roomId);
+  };
+
+  const handleCreateRoom = () => {
+    if (roomName && selectedUsers.length > 0) {
+      console.log("Creating room:", { roomName, roomTopic, users: selectedUsers });
+      setShowCreateRoom(false);
+      setSelectedUsers([]);
+      setRoomName("");
+      setRoomTopic("");
+    }
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
+
   const getStatusColor = (user: User) => {
     if (!user.isOnline) return "bg-gray-400";
     if (user.onCall) return "bg-red-500";
     return "bg-green-500";
   };
 
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case "Beginner": return "bg-green-100 text-green-700";
+      case "Intermediate": return "bg-blue-100 text-blue-700";
+      case "Advanced": return "bg-purple-100 text-purple-700";
+      case "Mixed": return "bg-orange-100 text-orange-700";
+      default: return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const maxMinutes = Math.max(...progressData.weeklyProgress.map(d => d.minutes));
 
   return (
-     <div className="pt-16 min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white">
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] px-4 gap-6">
-        
-        {/* LEFT SIDE: Call Area with Premium Banner */}
-        <div className="w-full lg:w-2/3 flex flex-col gap-6 items-center justify-start py-4">
-          {/* Premium Access Banner */}
-          <div className="w-full max-w-5xl bg-gradient-to-r from-yellow-400 via-pink-400 to-red-400 text-white px-6 py-4 rounded-2xl shadow-xl text-center">
-            <h2 className="text-lg md:text-xl font-bold">
-              🎥 Video Calling is available for Premium Members
-            </h2>
-            <p className="text-sm md:text-base">
-              Upgrade your account to talk face-to-face with strangers in real time.
-            </p>
-          </div>
-
-          {/* Video Area Placeholder */}
-          <div className="w-full h-[75%] max-w-5xl flex items-center justify-center">
-            <div className="w-full h-full bg-white/50 border border-gray-200 shadow-2xl rounded-3xl backdrop-blur-sm flex items-center justify-center p-6">
-              <div className="text-center">
-                <h3 className="text-2xl font-semibold text-gray-700 mb-2">Video Area</h3>
-                <p className="text-gray-500">Start a call or upgrade to premium to enable video calls.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Filters and Random Call Button */}
-          <div className="w-full max-w-5xl bg-white p-4 rounded-2xl shadow-md">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <button
-                onClick={handleRandomCall}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-full shadow-lg hover:scale-105 transition"
-              >
-                🎲 Talk to a Random Stranger
-              </button>
-
-              <div className="flex flex-wrap gap-3 items-center">
-                <select
-                  className="px-3 py-2 rounded-full border border-gray-300"
-                  value={genderFilter}
-                  onChange={(e) => setGenderFilter(e.target.value)}
-                >
-                  <option value="All">All Genders</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                <select
-                  className="px-3 py-2 rounded-full border border-gray-300"
-                  value={levelFilter}
-                  onChange={(e) => setLevelFilter(e.target.value)}
-                >
-                  <option value="All">All Levels</option>
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                </select>
-                <select
-                  className="px-3 py-2 rounded-full border border-gray-300"
-                  value={countryFilter}
-                  onChange={(e) => setCountryFilter(e.target.value)}
-                >
-                  <option value="All">All Countries</option>
-                  <option value="USA">USA</option>
-                  <option value="India">India</option>
-                  <option value="UK">UK</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT SIDE */}
-        <div className="w-full lg:w-1/3 bg-white rounded-3xl shadow-lg p-6 flex flex-col">
-          <h3 className="text-xl font-bold text-gray-700 mb-3">🟢 Online Users</h3>
-
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search user..."
-            className="px-4 py-2 border border-gray-300 rounded-full mb-4"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          {/* Scrollable user list */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-4">
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between bg-gray-50 hover:bg-blue-100 transition p-3 rounded-xl shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-12 h-12 rounded-full border border-gray-300 object-cover"
-                      />
-                      <span
-                        className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full ring-2 ring-white ${getStatusColor(user)}`}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {user.level} • {user.country}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleCall(user.id)}
-                    className="bg-blue-500 text-white px-4 py-1 rounded-full hover:scale-105 transition"
-                  >
-                    Call
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-500">No users match the filters.</p>
-            )}
+    <div className="pt-16 min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white pb-8">
+      {/* Navigation Tabs */}
+      <div className="sticky top-20 z-10 bg-white/80 backdrop-blur-md shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setActiveTab("call")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-all ${
+                activeTab === "call"
+                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <Video size={18} />
+              Video Call
+            </button>
+            <button
+              onClick={() => setActiveTab("rooms")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-all ${
+                activeTab === "rooms"
+                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <Users size={18} />
+              Live Rooms
+            </button>
+            <button
+              onClick={() => setActiveTab("progress")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-all ${
+                activeTab === "progress"
+                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <TrendingUp size={18} />
+              Progress
+            </button>
+            <button
+              onClick={() => setActiveTab("profile")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-medium whitespace-nowrap transition-all ${
+                activeTab === "profile"
+                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <UserIcon size={18} />
+              Profile
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Call Section */}
+      {activeTab === "call" && (
+        <div className="flex flex-col lg:flex-row min-h-[calc(100vh-8rem)] px-4 gap-6 py-6">
+          <div className="w-full lg:w-2/3 flex flex-col gap-6 items-center justify-start">
+            <div className="w-full max-w-5xl bg-gradient-to-r from-yellow-400 via-pink-400 to-red-400 text-white px-6 py-4 rounded-2xl shadow-xl text-center">
+              <h2 className="text-lg md:text-xl font-bold">
+                🎥 Video Calling is available for Premium Members
+              </h2>
+              <p className="text-sm md:text-base">
+                Upgrade your account to talk face-to-face with strangers in real time.
+              </p>
+            </div>
+
+            <div className="w-full flex-1 max-w-5xl flex items-center justify-center">
+              <div className="w-full h-full min-h-[400px] bg-white/50 border border-gray-200 shadow-2xl rounded-3xl backdrop-blur-sm flex items-center justify-center p-6">
+                <div className="text-center">
+                  <h3 className="text-2xl font-semibold text-gray-700 mb-2">Video Area</h3>
+                  <p className="text-gray-500">Start a call or upgrade to premium to enable video calls.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full max-w-5xl bg-white p-4 rounded-2xl shadow-md">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <button
+                  onClick={handleRandomCall}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-full shadow-lg hover:scale-105 transition"
+                >
+                  🎲 Talk to a Random Stranger
+                </button>
+
+                <div className="flex flex-wrap gap-3 items-center">
+                  <select
+                    className="px-3 py-2 rounded-full border border-gray-300 text-sm"
+                    value={genderFilter}
+                    onChange={(e) => setGenderFilter(e.target.value)}
+                  >
+                    <option value="All">All Genders</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <select
+                    className="px-3 py-2 rounded-full border border-gray-300 text-sm"
+                    value={levelFilter}
+                    onChange={(e) => setLevelFilter(e.target.value)}
+                  >
+                    <option value="All">All Levels</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                  <select
+                    className="px-3 py-2 rounded-full border border-gray-300 text-sm"
+                    value={countryFilter}
+                    onChange={(e) => setCountryFilter(e.target.value)}
+                  >
+                    <option value="All">All Countries</option>
+                    <option value="USA">USA</option>
+                    <option value="India">India</option>
+                    <option value="UK">UK</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full lg:w-1/3 bg-white rounded-3xl shadow-lg p-6 flex flex-col">
+            <h3 className="text-xl font-bold text-gray-700 mb-3">🟢 Online Users</h3>
+
+            <input
+              type="text"
+              placeholder="Search user..."
+              className="px-4 py-2 border border-gray-300 rounded-full mb-4"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between bg-gray-50 hover:bg-blue-100 transition p-3 rounded-xl shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-12 h-12 rounded-full border border-gray-300 object-cover"
+                        />
+                        <span
+                          className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full ring-2 ring-white ${getStatusColor(user)}`}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{user.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {user.level} • {user.country}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleCall(user.id)}
+                      className="bg-blue-500 text-white px-4 py-1 rounded-full hover:scale-105 transition text-sm"
+                    >
+                      Call
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500">No users match the filters.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rooms Section */}
+      {activeTab === "rooms" && (
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">Live Rooms</h2>
+              <p className="text-gray-600">Join group conversations and practice English together</p>
+            </div>
+            <button
+              onClick={() => setShowCreateRoom(!showCreateRoom)}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full shadow-lg hover:scale-105 transition"
+            >
+              <Plus size={20} />
+              Create Room
+            </button>
+          </div>
+
+          {showCreateRoom && (
+            <div className="mb-6 bg-white rounded-3xl shadow-xl p-6 border-2 border-purple-200">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Create Your Own Room</h3>
+              
+              <div className="space-y-4 mb-4">
+                <input
+                  type="text"
+                  placeholder="Room Name"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Topic (optional)"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  value={roomTopic}
+                  onChange={(e) => setRoomTopic(e.target.value)}
+                />
+              </div>
+
+              <h4 className="font-semibold text-gray-700 mb-3">Select Participants</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 max-h-60 overflow-y-auto">
+                {dummyUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    onClick={() => toggleUserSelection(user.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition ${
+                      selectedUsers.includes(user.id)
+                        ? "bg-purple-100 border-2 border-purple-500"
+                        : "bg-gray-50 border-2 border-transparent hover:bg-gray-100"
+                    }`}
+                  >
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.level}</p>
+                    </div>
+                    {selectedUsers.includes(user.id) && (
+                      <span className="text-purple-600 font-bold">✓</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCreateRoom}
+                  disabled={!roomName || selectedUsers.length === 0}
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition"
+                >
+                  Create Room
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateRoom(false);
+                    setSelectedUsers([]);
+                    setRoomName("");
+                    setRoomTopic("");
+                  }}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {dummyRooms.map((room) => (
+              <div
+                key={room.id}
+                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-6 border border-gray-100"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">{room.name}</h3>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <UserIcon size={14} />
+                      Hosted by {room.host}
+                    </p>
+                  </div>
+                  {room.isLive && (
+                    <span className="flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-semibold">
+                      <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                      LIVE
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle size={16} className="text-gray-400" />
+                    <span className="text-sm text-gray-600">{room.topic}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelColor(room.level)}`}>
+                      {room.level}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      {room.participants}/{room.maxParticipants} participants
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                    style={{ width: `${(room.participants / room.maxParticipants) * 100}%` }}
+                  ></div>
+                </div>
+
+                <button
+                  onClick={() => handleJoinRoom(room.id)}
+                  disabled={room.participants >= room.maxParticipants}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {room.participants >= room.maxParticipants ? "Room Full" : "Join Room"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Progress Section */}
+      {activeTab === "progress" && (
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <h2 className="text-3xl font-bold text-gray-800 mb-6">Your Progress</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <Video size={32} />
+                <span className="text-3xl font-bold">{progressData.totalCalls}</span>
+              </div>
+              <p className="text-blue-100">Total Calls</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <Clock size={32} />
+                <span className="text-3xl font-bold">{progressData.totalHours}h</span>
+              </div>
+              <p className="text-purple-100">Practice Hours</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <Award size={32} />
+                <span className="text-3xl font-bold">{progressData.streak}</span>
+              </div>
+              <p className="text-orange-100">Day Streak 🔥</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <TrendingUp size={32} />
+                <span className="text-3xl font-bold">{progressData.level}</span>
+              </div>
+              <p className="text-green-100">Current Level</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg p-8">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6">Weekly Activity</h3>
+            
+            <div className="flex items-end justify-between gap-4 h-64">
+              {progressData.weeklyProgress.map((day, idx) => {
+                const heightPercent = (day.minutes / maxMinutes) * 100;
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="relative w-full flex items-end justify-center h-full">
+                      <div
+                        className="w-full bg-gradient-to-t from-blue-500 to-purple-500 rounded-t-xl hover:from-blue-600 hover:to-purple-600 transition-all cursor-pointer group"
+                        style={{ height: `${heightPercent}%` }}
+                      >
+                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                          {day.minutes} min
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-600">{day.day}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+            <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl shadow-lg p-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">🎯 Achievements</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3">
+                  <span className="text-3xl">🏆</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">First Call</p>
+                    <p className="text-sm text-gray-500">Make your first video call</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3">
+                  <span className="text-3xl">⭐</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Week Warrior</p>
+                    <p className="text-sm text-gray-500">7-day practice streak</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3 opacity-50">
+                  <span className="text-3xl">💎</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">100 Calls Club</p>
+                    <p className="text-sm text-gray-500">Complete 100 calls (47/100)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl shadow-lg p-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">📈 Learning Insights</h3>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-700">Speaking Fluency</span>
+                    <span className="text-sm font-bold text-blue-600">75%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full" style={{ width: "75%" }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-700">Vocabulary</span>
+                    <span className="text-sm font-bold text-purple-600">60%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full" style={{ width: "60%" }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-semibold text-gray-700">Confidence</span>
+                    <span className="text-sm font-bold text-green-600">85%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full" style={{ width: "85%" }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Section */}
+      {activeTab === "profile" && (
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+            <div className="h-32 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+            
+            <div className="px-8 pb-8">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16 mb-6">
+                <div className="relative">
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-32 h-32 rounded-full border-4 border-white shadow-xl object-cover"
+                  />
+                  <button className="absolute bottom-2 right-2 bg-blue-500 text-white p-2 rounded-full shadow-lg hover:bg-blue-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="flex-1 text-center sm:text-left">
+                  <h2 className="text-3xl font-bold text-gray-800 mb-1">{currentUser.name}</h2>
+                  <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
+                    <span className={`px-4 py-1 rounded-full text-sm font-semibold ${getLevelColor(currentUser.level)}`}>
+                      {currentUser.level}
+                    </span>
+                    {!currentUser.isPremium && (
+                      <button className="flex items-center gap-1 px-4 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full text-sm font-semibold hover:scale-105 transition">
+                        <Crown size={14} />
+                        Upgrade to Premium
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
+                  
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <Mail className="text-blue-500" size={20} />
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="font-semibold text-gray-800">{currentUser.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <Globe className="text-green-500" size={20} />
+                    <div>
+                      <p className="text-xs text-gray-500">Country</p>
+                      <p className="font-semibold text-gray-800">{currentUser.country}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <Calendar className="text-purple-500" size={20} />
+                    <div>
+                      <p className="text-xs text-gray-500">Member Since</p>
+                      <p className="font-semibold text-gray-800">{currentUser.memberSince}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800">Quick Stats</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-blue-600">{progressData.totalCalls}</p>
+                      <p className="text-xs text-gray-600 mt-1">Total Calls</p>
+                    </div>
+                    
+                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-purple-600">{progressData.totalHours}h</p>
+                      <p className="text-xs text-gray-600 mt-1">Hours Practiced</p>
+                    </div>
+                    
+                    <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-orange-600">{progressData.streak}</p>
+                      <p className="text-xs text-gray-600 mt-1">Day Streak</p>
+                    </div>
+                    
+                    <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-green-600">12</p>
+                      <p className="text-xs text-gray-600 mt-1">Rooms Joined</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Learning Preferences</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Topics</label>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">Business</span>
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">Travel</span>
+                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Culture</span>
+                      <button className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200 transition">+ Add</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Practice Goals</label>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm">Fluency</span>
+                      <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">Grammar</span>
+                      <button className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200 transition">+ Add</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:scale-105 transition">
+                    Edit Profile
+                  </button>
+                  <button className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition">
+                    Account Settings
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Profile Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Award className="text-yellow-500" size={20} />
+                Badges & Achievements
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col items-center p-3 bg-yellow-50 rounded-xl">
+                  <span className="text-3xl mb-1">🏆</span>
+                  <p className="text-xs text-center font-semibold text-gray-700">Early Bird</p>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-blue-50 rounded-xl">
+                  <span className="text-3xl mb-1">⭐</span>
+                  <p className="text-xs text-center font-semibold text-gray-700">Social Star</p>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-purple-50 rounded-xl">
+                  <span className="text-3xl mb-1">🎯</span>
+                  <p className="text-xs text-center font-semibold text-gray-700">Goal Getter</p>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-green-50 rounded-xl">
+                  <span className="text-3xl mb-1">🔥</span>
+                  <p className="text-xs text-center font-semibold text-gray-700">Streak King</p>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-pink-50 rounded-xl">
+                  <span className="text-3xl mb-1">💬</span>
+                  <p className="text-xs text-center font-semibold text-gray-700">Chatterbox</p>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-gray-100 rounded-xl opacity-50">
+                  <span className="text-3xl mb-1">🔒</span>
+                  <p className="text-xs text-center font-semibold text-gray-700">Locked</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Users className="text-blue-500" size={20} />
+                Recent Connections
+              </h3>
+              <div className="space-y-3">
+                {dummyUsers.slice(0, 3).map((user) => (
+                  <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full border border-gray-300 object-cover"
+                      />
+                      <div>
+                        <p className="font-semibold text-sm">{user.name}</p>
+                        <p className="text-xs text-gray-500">{user.country}</p>
+                      </div>
+                    </div>
+                    <button className="text-blue-500 text-sm font-semibold hover:underline">
+                      View
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
