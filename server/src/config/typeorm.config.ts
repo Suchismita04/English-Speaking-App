@@ -1,6 +1,5 @@
 import { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { ConfigService } from "@nestjs/config";
-import { config } from "process";
 
 export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOptions => {
 
@@ -13,7 +12,7 @@ export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOption
     database: configService.get<string>('DB_NAME'),
     autoLoadEntities: true,
     entities:[__dirname + '/**/*.entity{.ts,.js}'],
-    synchronize: true,
+    synchronize: configService.get<boolean>('SYNC_DB'),
     options: {
       encrypt: false,
       trustServerCertificate: true,
