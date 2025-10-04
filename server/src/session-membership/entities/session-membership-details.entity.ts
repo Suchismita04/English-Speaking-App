@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
 import { SessionRoom } from "src/session-room/entities/session-room.entity";
-import { User } from "src/entities/user.entities";
+import { User } from "src/user/entities/user.entity";
 
 @Entity({ name: 'SessionMembershipDetails' })
 export class SessionMembershipDetail {
