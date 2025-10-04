@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { User } from "src/user/entities/user.entities";
+import { User } from "src/user/entities/user.entity";
 import { SessionMembershipDetail } from "src/session-membership/entities/session-membership-details.entity";
 
 @Entity({ name: 'SessionRooms' })
