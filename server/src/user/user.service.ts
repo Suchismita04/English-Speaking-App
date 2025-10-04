@@ -23,19 +23,12 @@ export class UserService {
 
         const hashedPwd = await bcrypt.hash(dto.password, salt)
 
-
-
         const newUser = this.userRepo.create({ ...dto, password: hashedPwd })
-
-
-
 
         const savedUser = await this.userRepo.save(newUser);
         const savedUserWithoutPwd = plainToInstance(User, savedUser)
 
 
         return savedUserWithoutPwd;
-
-
     }
 }
