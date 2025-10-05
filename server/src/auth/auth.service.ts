@@ -34,9 +34,11 @@ export class AuthService {
 
         // JWT authentication
         const { password, ...userDetails } = user
-        const payload = { sub: userDetails.id, username: userDetails.user_name }
+        const payload = { sub: userDetails.id, username: userDetails.user_name, email: userDetails.user_email }
 
         return {
+            success: true,
+            message: 'user logged in successfully...',
             accessToken: await this.jwtService.signAsync(payload, {
                 secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
                 expiresIn: this.configService.get<string>('ACCESS_TOKEN_EXPIRE')
