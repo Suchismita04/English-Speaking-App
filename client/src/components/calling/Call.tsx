@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Video, TrendingUp, User as UserIcon, Plus, Crown, Globe, Clock, Award, Calendar, MessageCircle, Mail, X, Menu } from "lucide-react";
+import { Users, Video, TrendingUp, User as UserIcon, Plus, Crown, Globe, Clock, Award, Calendar, MessageCircle, Mail, Menu, X } from "lucide-react";
 import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line, ComposedChart } from 'recharts';
 
 type User = {
@@ -154,8 +154,8 @@ const Call = () => {
         <div className="flex flex-col h-full">
           {/* Logo/Header Area with Close Button */}
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-              Your App
+            <h1 className="text-3xl font-extrabold text-indigo-700 tracking-wide">
+              Daily<span className="text-rose-500">Talk</span>
             </h1>
             <button
               onClick={() => setIsMobileOpen(false)}
@@ -198,7 +198,7 @@ const Call = () => {
           {/* Footer Area */}
           <div className="p-4 border-t border-gray-200">
             <div className="text-xs text-gray-500 text-center">
-              © 2025 Your App
+              © 2025 DailyTalk
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ const Call = () => {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto pt-20">
+      <div className="flex-1 overflow-auto">
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
