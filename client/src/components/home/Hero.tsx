@@ -86,7 +86,7 @@ const Hero = () => {
           className="peer w-full bg-white/80 text-gray-800 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-transparent"
         />
         <label className="absolute left-4 top-2 text-sm text-gray-500 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-2 peer-focus:text-sm peer-focus:text-gray-500">
-          Email
+          Email or User name
         </label>
       </div>
       <div className="relative">
@@ -147,7 +147,7 @@ const Hero = () => {
       <div className="relative">
         <input type="text" placeholder=" " className="peer w-full bg-white/80 text-gray-800 px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-transparent" />
         <label className="absolute left-4 top-2 text-sm text-gray-500 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-2 peer-focus:text-sm peer-focus:text-gray-500">
-          Full Name
+          User Name
         </label>
       </div>
       <div className="relative">
