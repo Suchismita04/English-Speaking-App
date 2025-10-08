@@ -1,6 +1,6 @@
 // explicitly making 'crypto' globally available
-import * as cryptoModule from 'crypto';
-(global as any).crypto = cryptoModule;
+// import * as cryptoModule from 'crypto';
+// (global as any).crypto = cryptoModule;
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
