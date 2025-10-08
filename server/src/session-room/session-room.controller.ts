@@ -6,19 +6,19 @@ import { CreateSessionRoomDto } from "./dto/create-session-room.dto";
 @Controller('session-room')
 export class SessionRoomController {
 
-  constructor(private readonly sessionRoomService: SessionRoomService) {}
+    constructor(private readonly sessionRoomService: SessionRoomService) { }
     //create  rooms 
     @Post('createRoom')
-    createRoom(@Body() body:CreateSessionRoomDto) {
-    const  createdBy= body.createdBy ?? 1  
-     return this.sessionRoomService.createRoom(body.name, body.description, body.logo,createdBy)  
+    createRoom(@Body() body: CreateSessionRoomDto) {
+        const createdBy = body.createdBy ?? 1  // default for testing, will replace by user  ID from JWT  Auth
+        return this.sessionRoomService.createRoom(body.name, body.description, body.logo, createdBy)
     }
 
 
     //get list of rooms 
     @Get('getListOfRooms')
     getListOfRooms() {
-
+       return this.sessionRoomService.getListOfRooms();
     }
 
 
