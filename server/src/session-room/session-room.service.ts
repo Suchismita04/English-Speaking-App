@@ -43,7 +43,11 @@ export class SessionRoomService {
 
 
   async getListOfRooms() {
-
+      const rooms = await this.roomRepo.find({
+      relations: ["createdBy"],
+      order: { created_at: "DESC" },
+    });
+    return rooms;
   }
 
   async joinRoom() {
