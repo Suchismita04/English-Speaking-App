@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { User } from "./entities/user.entities";
+import { User } from "./entities/user.entity";
 import { Repository } from "typeorm";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from 'bcrypt'
@@ -23,19 +23,12 @@ export class UserService {
 
         const hashedPwd = await bcrypt.hash(dto.password, salt)
 
-
-
         const newUser = this.userRepo.create({ ...dto, password: hashedPwd })
-
-
-
 
         const savedUser = await this.userRepo.save(newUser);
         const savedUserWithoutPwd = plainToInstance(User, savedUser)
 
 
         return savedUserWithoutPwd;
-
-
     }
 }
