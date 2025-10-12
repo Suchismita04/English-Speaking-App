@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, PhoneCall,TrendingUp,History, MessageCircle, FileHeart, User as UserIcon, Menu, X } from "lucide-react";
+import { Users, PhoneCall, TrendingUp, History, MessageCircle, FileHeart, User as UserIcon, Menu, X, Sun, Moon, Monitor } from "lucide-react";
 import VideoCallSection from "./Random-call";
 import LiveRoomsSection from "./Live-room";
 import ProgressSection from "./Progress";
@@ -11,16 +11,22 @@ import ChatWithStrangers from "./Chat-with-stranger";
 const Call = () => {
   const [activeTab, setActiveTab] = useState<"call" | "rooms" | "progress" | "history" | "favorites" | "chat" | "profile">("call");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
 
   const navItems = [
     { id: "call" as const, label: "Talk with Strangers", icon: PhoneCall },
+    { id: "chat" as const, label: "Chat with Strangers", icon: MessageCircle },
     { id: "rooms" as const, label: "Live Rooms", icon: Users },
     { id: "progress" as const, label: "Progress", icon: TrendingUp },
     { id: "history" as const, label: "Call History", icon: History },
     { id: "favorites" as const, label: "Favorite Partner", icon: FileHeart },
-    { id: "chat" as const, label: "Chat with Strangers", icon: MessageCircle },
     { id: "profile" as const, label: "Profile", icon: UserIcon },
+  ];
 
+  const themeOptions = [
+    { value: "light" as const, icon: Sun, label: "Light" },
+    { value: "dark" as const, icon: Moon, label: "Dark" },
+    { value: "system" as const, icon: Monitor, label: "System" },
   ];
 
   return (
@@ -75,7 +81,42 @@ const Call = () => {
             </div>
           </nav>
 
+          {/* Theme Toggle Section */}
+          <div className="p-4 border-t border-gray-200">
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Theme</p>
+              <div className="flex gap-2">
+                {themeOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isActive = theme === option.value;
+                  
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => setTheme(option.value)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-2 px-2 rounded-lg transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                      title={option.label}
+                    >
+                      <Icon size={18} />
+                      <span className="text-xs font-medium">{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
+            {/* Copyright Text */}
+            <div className="text-center pt-3 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                © 2025 <span className="font-semibold text-indigo-600">Daily<span className="text-rose-500">Talk</span></span>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">All rights reserved</p>
+            </div>
+          </div>
         </div>
       </div>
 
