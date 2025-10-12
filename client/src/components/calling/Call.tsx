@@ -6,14 +6,14 @@ import ProgressSection from "./Progress";
 import ProfileSection from "./Profile";
 
 const Call = () => {
-  const [activeTab, setActiveTab] = useState<"call" | "rooms" | "progress" | "profile">("call");
+  const [activeTab, setActiveTab] = useState<"call" | "rooms" | "progress" | "history" | "favorites" | "chat" | "profile">("call");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const navItems = [
     { id: "call" as const, label: "Talk with Strangers", icon: PhoneCall },
     { id: "rooms" as const, label: "Live Rooms", icon: Users },
     { id: "progress" as const, label: "Progress", icon: TrendingUp },
-        { id: "history" as const, label: "Call History", icon: History },
+    { id: "history" as const, label: "Call History", icon: History },
     { id: "favorites" as const, label: "Favorite Partner", icon: FileHeart },
     { id: "chat" as const, label: "Chat with Strangers", icon: MessageCircle },
     { id: "profile" as const, label: "Profile", icon: UserIcon },
