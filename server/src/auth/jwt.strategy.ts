@@ -20,6 +20,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     validate(payload: any): any {
-
+        return {userId: payload.sub, email: payload.email, username: payload.username}
     }
 }
