@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, PhoneCall,TrendingUp, User as UserIcon, Menu, X } from "lucide-react";
+import { Users, PhoneCall,TrendingUp,History, MessageCircle, FileHeart, User as UserIcon, Menu, X } from "lucide-react";
 import VideoCallSection from "./Random-call";
 import LiveRoomsSection from "./Live-room";
 import ProgressSection from "./Progress";
@@ -13,9 +13,11 @@ const Call = () => {
     { id: "call" as const, label: "Talk with Strangers", icon: PhoneCall },
     { id: "rooms" as const, label: "Live Rooms", icon: Users },
     { id: "progress" as const, label: "Progress", icon: TrendingUp },
+        { id: "history" as const, label: "Call History", icon: History },
+    { id: "favorites" as const, label: "Favorite Partner", icon: FileHeart },
+    { id: "chat" as const, label: "Chat with Strangers", icon: MessageCircle },
     { id: "profile" as const, label: "Profile", icon: UserIcon },
-    // { id: "history" as const, label: "Call History", icon: UserIcon },
-    // { id: "favorites" as const, label: "Favorite Partner", icon: UserIcon }
+
   ];
 
   return (
