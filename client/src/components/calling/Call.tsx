@@ -4,6 +4,9 @@ import VideoCallSection from "./Random-call";
 import LiveRoomsSection from "./Live-room";
 import ProgressSection from "./Progress";
 import ProfileSection from "./Profile";
+import HistorySection from "./Call-history";
+import FavoritePracticePartner from "./Favorite-partner";
+import ChatWithStrangers from "./Chat-with-stranger";
 
 const Call = () => {
   const [activeTab, setActiveTab] = useState<"call" | "rooms" | "progress" | "history" | "favorites" | "chat" | "profile">("call");
@@ -99,6 +102,9 @@ const Call = () => {
         {activeTab === "rooms" && <LiveRoomsSection />}
         {activeTab === "progress" && <ProgressSection />}
         {activeTab === "profile" && <ProfileSection />}
+        {activeTab === "history" && <HistorySection />}
+        {activeTab === "favorites" && <FavoritePracticePartner />}
+        {activeTab === "chat" && <ChatWithStrangers />}
       </div>
     </div>
   );
