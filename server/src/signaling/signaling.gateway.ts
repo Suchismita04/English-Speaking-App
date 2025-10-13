@@ -1,26 +1,36 @@
-import {
-  WebSocketGateway,
-  SubscribeMessage,
-  WebSocketServer,
-} from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({ cors: true })
-export class SignalingGateway {
-  @WebSocketServer() server: Server;
+export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
 
-  @SubscribeMessage('offer')
-  handleOffer(client: Socket, payload: { roomId: string; offer: any }) {
-    client.to(payload.roomId).emit('offer', payload.offer);
+  // All online users: socketId -> userId
+  onlineUsers: { [socketId: string]: string } = {};
+
+  // Users currently in a call (socketId -> roomId)
+  activeCalls: { [socketId: string]: string } = {};
+
+  handleConnection(client: Socket) {
+    console.log(`User connected: ${client.id}`);
   }
 
-  @SubscribeMessage('answer')
-  handleAnswer(client: Socket, payload: { roomId: string; answer: any }) {
-    client.to(payload.roomId).emit('answer', payload.answer);
+  handleDisconnect(client: Socket) {
+    const userId = this.onlineUsers[client.id];
+    console.log(`User disconnected: ${userId} (${client.id})`);
+
+    delete this.onlineUsers[client.id];
+    delete this.activeCalls[client.id];
   }
 
-  @SubscribeMessage('iceCandidate')
-  handleIceCandidate(client: Socket, payload: { roomId: string; candidate: any }) {
-    client.to(payload.roomId).emit('iceCandidate', payload.candidate);
+  // Register a user as online
+  @SubscribeMessage('register-user')
+  registerUser(
+    @MessageBody() body: { userId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    this.onlineUsers[client.id] = body.userId;
+    console.log(`User registered: ${body.userId} (${client.id})`);
   }
 }
