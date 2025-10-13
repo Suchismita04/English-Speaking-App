@@ -2,55 +2,53 @@ import { Injectable } from '@nestjs/common';
 import { SignalingGateway } from 'src/signaling/signaling.gateway';
 import { randomUUID } from 'crypto';
 
-interface WaitingUser {
-  userId: string;
-  socketId: string;
-}
-
 @Injectable()
 export class AudioCallService {
-  private waitingUsers: WaitingUser[] = [];
-  private activeCalls: { [roomId: string]: string[] } = {};
-
   constructor(private readonly signalingGateway: SignalingGateway) {}
 
-  // Called when user starts an audio call
   startCall(userId: string, socketId: string) {
-    // If no waiting user, add to queue
-    if (this.waitingUsers.length === 0) {
-      this.waitingUsers.push({ userId, socketId });
-      return { message: 'Waiting for a partner...' };
+    // Filter online users excluding the caller and users already in a call
+    const availableSockets = Object.keys(this.signalingGateway.onlineUsers)
+      .filter(id => id !== socketId && !this.signalingGateway.activeCalls[id]);
+
+    if (availableSockets.length === 0) {
+      return { message: 'No online users available' };
     }
 
-    // Pick the first waiting user (oldest one in queue)
-    const partner = this.waitingUsers.shift();
+    // Pick a random online user
+    const partnerSocketId = availableSockets[Math.floor(Math.random() * availableSockets.length)];
+    const partnerId = this.signalingGateway.onlineUsers[partnerSocketId];
 
-    // Safety check
-    if (!partner) {
-      // Should never happen, but just in case of concurrency
-      this.waitingUsers.push({ userId, socketId });
-      return { message: 'Waiting for a partner...' };
-    }
-
+    // Generate roomId
     const roomId = randomUUID();
-    this.activeCalls[roomId] = [socketId, partner.socketId];
 
-    // Notify both users via socket (SignalingGateway)
-    this.signalingGateway.server.to(partner.socketId).emit('partner-found', {
+    // Mark both users as in-call
+    this.signalingGateway.activeCalls[socketId] = roomId;
+    this.signalingGateway.activeCalls[partnerSocketId] = roomId;
+
+    // Notify both users via socket
+    this.signalingGateway.server.to(partnerSocketId).emit('partner-found', {
       roomId,
       partnerId: userId,
     });
 
     this.signalingGateway.server.to(socketId).emit('partner-found', {
       roomId,
-      partnerId: partner.userId,
+      partnerId,
     });
 
     return { message: 'Partner found', roomId };
   }
 
-  // End call or user disconnect
-  endCall(roomId: string) {
-    delete this.activeCalls[roomId];
+  endCall(socketId: string) {
+    const roomId = this.signalingGateway.activeCalls[socketId];
+    if (!roomId) return;
+
+    // Remove both users from activeCalls
+    Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
+      if (this.signalingGateway.activeCalls[sid] === roomId) {
+        delete this.signalingGateway.activeCalls[sid];
+      }
+    });
   }
 }
