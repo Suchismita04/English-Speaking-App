@@ -1,9 +1,11 @@
-import { Controller, Post, Get, Delete, Body } from "@nestjs/common";
+import { Controller, Post, Get, Delete, Body, UseGuards } from "@nestjs/common";
 import { SessionRoomService } from "./session-room.service";
 import { CreateSessionRoomDto } from "./dto/create-session-room.dto";
+import { JwtAuthGuard } from "src/common/guards/jwt-auth.guards";
 
 
 @Controller('session-room')
+@UseGuards(JwtAuthGuard)
 export class SessionRoomController {
 
     constructor(private readonly sessionRoomService: SessionRoomService) { }

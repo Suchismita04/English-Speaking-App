@@ -9,7 +9,6 @@ export class CreateSessionRoomDto{
     @IsNotEmpty()
     name:string;
 
-
     @IsString()
     @IsNotEmpty()
     description:string;
