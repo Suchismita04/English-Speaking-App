@@ -8,6 +8,7 @@ import { UserModule } from './user/user.module';
 import { SessionRoomModule } from './session-room/session-room.module';
 import { SessionMembershipDetailModule } from './session-membership/session-membership.module';
 import { AuthModule } from './auth/auth.module';
+import { AudioCallModule } from './audio-call/audio-call.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { AuthModule } from './auth/auth.module';
     UserModule,
     SessionRoomModule,
     SessionMembershipDetailModule,
-    AuthModule
+    AuthModule,
+    AudioCallModule
   ],
   controllers: [AppController],
   providers: [AppService],

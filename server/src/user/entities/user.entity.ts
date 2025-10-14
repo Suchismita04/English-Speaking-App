@@ -3,6 +3,20 @@ import { SessionRoom } from "src/session-room/entities/session-room.entity";
 import { SessionMembershipDetail } from "src/session-membership/entities/session-membership-details.entity";
 import { Exclude } from "class-transformer";
 
+export enum Gender {
+  MALE = 'Male',
+  FEMALE = 'Female',
+  OTHER = 'Other',
+  PREFER_NOT_TO_SAY = 'Prefer not to say',
+}
+
+export enum FluencyLevel {
+  BEGINNER = 'Beginner',
+  INTERMEDIATE = 'Intermediate',
+  ADVANCED = 'Advanced',
+  NATIVE = 'Native',
+}
+
 @Entity({ name: 'Users' })
 export class User {
   @PrimaryGeneratedColumn()
@@ -17,6 +31,16 @@ export class User {
   @Exclude()
   @Column({ type: 'varchar', length: 255 })
   password: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  country: string;
+
+  // Use varchar instead of enum for MSSQL
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  gender: Gender;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  fluencyLevel: FluencyLevel;
 
   @Column({ type: 'datetime', default: () => 'GETDATE()' })
   created_at: Date;
