@@ -32,5 +32,16 @@ export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnec
   ) {
     this.onlineUsers[client.id] = body.userId;
     console.log(`User registered: ${body.userId} (${client.id})`);
+    client.emit('registration-successful', {
+      status: 'OK',
+      userId: body.userId,
+      message: `Successfully registered ${body.userId}`,
+    });
+
+
   }
+
+  
+
+  
 }

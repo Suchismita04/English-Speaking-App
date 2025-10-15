@@ -7,6 +7,13 @@ export class AudioCallController {
 
   @Post('start')
   startAudioCall(@Body() body: { userId: string; socketId: string }) {
+ 
     return this.audioCallService.startCall(body.userId, body.socketId);
+  }
+
+  @Post('end')
+  endAudioCall(@Body() body: { socketId: string }) {
+    this.audioCallService.endCall(body.socketId);
+    return { status: 'OK', message: 'Call ended' };
   }
 }

@@ -7,7 +7,7 @@ export class AudioCallService {
   constructor(private readonly signalingGateway: SignalingGateway) {}
 
   startCall(userId: string, socketId: string) {
-    // Filter online users excluding the caller and users already in a call
+    // Filter online users excluding caller and already in a call
     const availableSockets = Object.keys(this.signalingGateway.onlineUsers)
       .filter(id => id !== socketId && !this.signalingGateway.activeCalls[id]);
 
@@ -15,7 +15,7 @@ export class AudioCallService {
       return { message: 'No online users available' };
     }
 
-    // Pick a random online user
+    // Pick a random partner
     const partnerSocketId = availableSockets[Math.floor(Math.random() * availableSockets.length)];
     const partnerId = this.signalingGateway.onlineUsers[partnerSocketId];
 
@@ -26,7 +26,7 @@ export class AudioCallService {
     this.signalingGateway.activeCalls[socketId] = roomId;
     this.signalingGateway.activeCalls[partnerSocketId] = roomId;
 
-    // Notify both users via socket
+    // Emit events to both users
     this.signalingGateway.server.to(partnerSocketId).emit('partner-found', {
       roomId,
       partnerId: userId,
@@ -44,7 +44,6 @@ export class AudioCallService {
     const roomId = this.signalingGateway.activeCalls[socketId];
     if (!roomId) return;
 
-    // Remove both users from activeCalls
     Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
       if (this.signalingGateway.activeCalls[sid] === roomId) {
         delete this.signalingGateway.activeCalls[sid];
@@ -52,3 +51,4 @@ export class AudioCallService {
     });
   }
 }
+``
