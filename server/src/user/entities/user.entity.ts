@@ -35,12 +35,21 @@ export class User {
   @Column({ type: 'varchar', length: 100, nullable: true })
   country: string;
 
-  // Use varchar instead of enum for MSSQL
+
   @Column({ type: 'varchar', length: 50, nullable: true })
   gender: Gender;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   fluencyLevel: FluencyLevel;
+
+  @Column({ type: 'bit', default: true })
+  isOnline: boolean;
+
+  @Column({ type: 'bit', default: false })
+  isOffline: boolean;
+
+  @Column({ type: 'bit', default: false })
+  onCall: boolean;
 
   @Column({ type: 'datetime', default: () => 'GETDATE()' })
   created_at: Date;
