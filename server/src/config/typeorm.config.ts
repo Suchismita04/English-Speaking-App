@@ -18,6 +18,6 @@ export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOption
       trustServerCertificate: true,
     },
     logger: 'simple-console',
-    logging: true
+    logging: false
   };
 };
