@@ -31,4 +31,12 @@ export class UserService {
 
         return savedUserWithoutPwd;
     }
+
+    async getAllTypesOfUser(): Promise<User[]> {
+    
+    const user = await this.userRepo.find();
+    return user
+        
+}
+
 }

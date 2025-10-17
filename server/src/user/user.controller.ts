@@ -13,5 +13,11 @@ export class UserController{
         return this.userService.registerUser(createUserDto)
     }
 
+    @Get("getAllTypesOfUser")
+   async getAllTypesOfUser(){
+        return  await this.userService.getAllTypesOfUser()
+    }
+
+
     
 }
