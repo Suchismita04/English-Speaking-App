@@ -8,7 +8,7 @@ export class AudioCallService {
   constructor(private readonly signalingGateway: SignalingGateway) {}
 
   startCall(userId: string, socketId: string) {
-    // Filter online users excluding caller and already in a call
+
     const availableSockets = Object.keys(this.signalingGateway.onlineUsers)
       .filter(id => id !== socketId && !this.signalingGateway.activeCalls[id]);
 
@@ -42,14 +42,21 @@ export class AudioCallService {
   }
 
   endCall(socketId: string) {
-    const roomId = this.signalingGateway.activeCalls[socketId];
-    if (!roomId) return;
+  const roomId = this.signalingGateway.activeCalls[socketId];
+  if (!roomId) return;
 
-    Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
-      if (this.signalingGateway.activeCalls[sid] === roomId) {
-        delete this.signalingGateway.activeCalls[sid];
-      }
-    });
-  }
+  // Notify all users in the room that the call ended
+  this.signalingGateway.server.to(roomId).emit('call-ended', { roomId });
+
+  // Remove all participants from activeCalls and leave room
+  Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
+    if (this.signalingGateway.activeCalls[sid] === roomId) {
+      delete this.signalingGateway.activeCalls[sid];
+      const socket = this.signalingGateway.server.sockets.sockets.get(sid);
+      if (socket) socket.leave(roomId);
+    }
+  });
+}
+
 }
 ``
