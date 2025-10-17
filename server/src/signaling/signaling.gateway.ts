@@ -2,6 +2,14 @@ import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDiscon
 import { Server, Socket } from 'socket.io';
 
 
+
+interface CallData {
+  from: string;
+  to: string;
+  sdp?: any;
+  candidate?: any;
+}
+
 // signaling gatewaye
 @WebSocketGateway({ cors: true })
 export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -39,11 +47,57 @@ export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnec
       userId: body.userId,
       message: `Successfully registered ${body.userId}`,
     });
+  }
+
+
+
+    @SubscribeMessage('offer')
+  sendOffer(@MessageBody() data: CallData) {
+    const targetSocket = this.onlineUsers[data.to];
+    if (targetSocket) {
+      this.server.to(targetSocket).emit('offer', { from: data.from, sdp: data.sdp });
+    }
+  }
+
+  @SubscribeMessage('answer')
+  sendAnswer(@MessageBody() data: CallData) {
+    const targetSocket = this.onlineUsers[data.to];
+    if (targetSocket) {
+      this.server.to(targetSocket).emit('answer', { from: data.from, sdp: data.sdp });
+    }
+  }
+
+  @SubscribeMessage('ice-candidate')
+  sendCandidate(@MessageBody() data: CallData) {
+    const targetSocket = this.onlineUsers[data.to];
+    if (targetSocket) {
+      this.server.to(targetSocket).emit('ice-candidate', { from: data.from, candidate: data.candidate });
+    }
+  }
+
+    @SubscribeMessage('end-call')
+    endCall(
+      @MessageBody() body: { roomId: string },
+      @ConnectedSocket() client: Socket,
+    ) {
+      const roomId = body.roomId;
+      console.log(`Call ended in room: ${roomId}`);
+
+      // Notify all users in that room
+      this.server.to(roomId).emit('call-ended', { roomId });
+
+      // Clean up active call records
+      for (const [socketId, rId] of Object.entries(this.activeCalls)) {
+        if (rId === roomId) delete this.activeCalls[socketId];
+      }
+
+
+      client.leave(roomId);
+
+    }
+    
+
+
 
 
   }
-
-  
-
-  
-}
