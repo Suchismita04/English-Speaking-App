@@ -4,7 +4,7 @@ const NotFound = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white flex items-center justify-center p-4">
       <div className="max-w-2xl w-full text-center">
-        {/* 404 Large Text*/}
+        {/* 404 Large Text Message */}
         <div className="relative mb-8">
           <h1 className="text-9xl md:text-[200px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500 opacity-20">
             404
@@ -14,7 +14,7 @@ const NotFound = () => {
           </div>
         </div>
 
-        {/* Main Message */}
+        {/* Main Message 404 Not Found */}
         <div className="mb-8 space-y-4">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-800">
             Oops! Page Not Found
