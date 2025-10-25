@@ -14,7 +14,7 @@ const NotFound = () => {
           </div>
         </div>
 
-        {/* Main Message */}
+        {/* Main Message For 404 */}
         <div className="mb-8 space-y-4">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-800">
             Oops! Page Not Found
