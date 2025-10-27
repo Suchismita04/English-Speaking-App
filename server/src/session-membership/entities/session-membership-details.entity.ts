@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "t
 import { SessionRoom } from "src/session-room/entities/session-room.entity";
 import { User } from "src/user/entities/user.entity";
 
-@Entity({ name: 'SessionMembershipDetails' })
+@Entity({ name: 'session_membership_details' }) 
 export class SessionMembershipDetail {
   @PrimaryGeneratedColumn()
   id: number;
@@ -21,9 +21,9 @@ export class SessionMembershipDetail {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ type: 'datetime', default: () => 'GETDATE()' })
+  @Column({ type: 'timestamp', default: () => 'NOW()' }) 
   joined_at: Date;
 
-  @Column({ type: 'char', length: 1, default: 'Y' })
+  @Column({ type: 'varchar', length: 1, default: 'Y' }) 
   is_active: string;
 }
