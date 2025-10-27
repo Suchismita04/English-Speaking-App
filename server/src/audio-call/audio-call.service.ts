@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 // audio call service
 @Injectable()
 export class AudioCallService {
-  constructor(private readonly signalingGateway: SignalingGateway) {}
+  constructor(private readonly signalingGateway: SignalingGateway) { }
 
   startCall(userId: string, socketId: string) {
 
@@ -27,6 +27,12 @@ export class AudioCallService {
     this.signalingGateway.activeCalls[socketId] = roomId;
     this.signalingGateway.activeCalls[partnerSocketId] = roomId;
 
+    const userASocket = this.signalingGateway.server.sockets.sockets.get(socketId);
+    const userBSocket = this.signalingGateway.server.sockets.sockets.get(partnerSocketId);
+
+    if (userASocket) userASocket.join(roomId);
+    if (userBSocket) userBSocket.join(roomId);
+
     // Emit events to both users
     this.signalingGateway.server.to(partnerSocketId).emit('partner-found', {
       roomId,
@@ -42,21 +48,21 @@ export class AudioCallService {
   }
 
   endCall(socketId: string) {
-  const roomId = this.signalingGateway.activeCalls[socketId];
-  if (!roomId) return;
+    const roomId = this.signalingGateway.activeCalls[socketId];
+    if (!roomId) return;
 
-  // Notify all users in the room that the call ended
-  this.signalingGateway.server.to(roomId).emit('call-ended', { roomId });
+    // Notify all users in the room that the call ended
+    this.signalingGateway.server.to(roomId).emit('call-ended', { roomId });
 
-  // Remove all participants from activeCalls and leave room
-  Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
-    if (this.signalingGateway.activeCalls[sid] === roomId) {
-      delete this.signalingGateway.activeCalls[sid];
-      const socket = this.signalingGateway.server.sockets.sockets.get(sid);
-      if (socket) socket.leave(roomId);
-    }
-  });
-}
+    // Remove all participants from activeCalls and leave room
+    Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
+      if (this.signalingGateway.activeCalls[sid] === roomId) {
+        delete this.signalingGateway.activeCalls[sid];
+        const socket = this.signalingGateway.server.sockets.sockets.get(sid);
+        if (socket) socket.leave(roomId);
+      }
+    });
+  }
 
 }
 ``
