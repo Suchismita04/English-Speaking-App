@@ -17,7 +17,7 @@ export enum FluencyLevel {
   NATIVE = 'Native',
 }
 
-@Entity({ name: 'Users' })
+@Entity({ name: 'users' }) 
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
@@ -35,26 +35,25 @@ export class User {
   @Column({ type: 'varchar', length: 100, nullable: true })
   country: string;
 
-
   @Column({ type: 'varchar', length: 50, nullable: true })
   gender: Gender;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   fluencyLevel: FluencyLevel;
 
-  @Column({ type: 'bit', default: true })
+  @Column({ type: 'boolean', default: true })   
   isOnline: boolean;
 
-  @Column({ type: 'bit', default: false })
+  @Column({ type: 'boolean', default: false })  
   isOffline: boolean;
 
-  @Column({ type: 'bit', default: false })
+  @Column({ type: 'boolean', default: false }) 
   onCall: boolean;
 
-  @Column({ type: 'datetime', default: () => 'GETDATE()' })
+  @Column({ type: 'timestamp', default: () => 'NOW()' }) 
   created_at: Date;
 
-  @Column({ type: 'datetime', default: () => 'GETDATE()', onUpdate: 'GETDATE()' })
+  @Column({ type: 'timestamp', default: () => 'NOW()', onUpdate: 'NOW()' }) 
   updated_at: Date;
 
   @OneToMany(() => SessionRoom, (sessionRoom) => sessionRoom.createdBy)
