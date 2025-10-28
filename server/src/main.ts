@@ -12,6 +12,13 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
+
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    methods: 'GET,PUT,PATCH,POST,DELETE',
+    credential:'true'
+  })
+
   app.setGlobalPrefix("api/v1");
   
   const PORT = configService.get<number>('PORT');
