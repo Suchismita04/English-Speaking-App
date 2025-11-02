@@ -232,7 +232,7 @@ const ChatWithStrangersSection = () => {
                   </div>
                 ))}
                 
-                {/* Typing Indicator */}
+                {/* Typing Indicator for chat*/}
                 {isTyping && (
                   <div className="flex justify-start animate-fadeIn">
                     <div className="flex items-end gap-2 max-w-[70%]">
@@ -255,7 +255,7 @@ const ChatWithStrangersSection = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
+              {/* Input Area for chat*/}
               <div className="p-4 border-t border-gray-100 bg-white">
                 <div className="flex items-center gap-2">
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition">
