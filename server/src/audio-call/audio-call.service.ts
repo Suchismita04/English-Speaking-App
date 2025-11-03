@@ -1,13 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { SignalingGateway } from 'src/signaling/signaling.gateway';
 import { randomUUID } from 'crypto';
+import { UserService } from 'src/user/user.service';
 
-// audio call service
 @Injectable()
 export class AudioCallService {
-  constructor(private readonly signalingGateway: SignalingGateway) { }
+  constructor(
+    private readonly signalingGateway: SignalingGateway,
+    private readonly userService: UserService,
+  ) {}
 
-  startCall(userId: string, socketId: string) {
+  async startCall(userId: number) {
+
+    const user = await this.userService.findById(userId);
+    if (!user) return { message: 'User not found' };
+
+    const socketId = user.socket_id;
+    if (!socketId) return { message: 'No socketId found for user' };
+
 
     const availableSockets = Object.keys(this.signalingGateway.onlineUsers)
       .filter(id => id !== socketId && !this.signalingGateway.activeCalls[id]);
@@ -16,14 +26,12 @@ export class AudioCallService {
       return { message: 'No online users available' };
     }
 
-    // Pick a random partner
+
     const partnerSocketId = availableSockets[Math.floor(Math.random() * availableSockets.length)];
     const partnerId = this.signalingGateway.onlineUsers[partnerSocketId];
 
-    // Generate roomId
+  
     const roomId = randomUUID();
-
-    // Mark both users as in-call
     this.signalingGateway.activeCalls[socketId] = roomId;
     this.signalingGateway.activeCalls[partnerSocketId] = roomId;
 
@@ -33,10 +41,10 @@ export class AudioCallService {
     if (userASocket) userASocket.join(roomId);
     if (userBSocket) userBSocket.join(roomId);
 
-    // Emit events to both users
+
     this.signalingGateway.server.to(partnerSocketId).emit('partner-found', {
       roomId,
-      partnerId: userId,
+      partnerId: user.id,
     });
 
     this.signalingGateway.server.to(socketId).emit('partner-found', {
@@ -51,10 +59,8 @@ export class AudioCallService {
     const roomId = this.signalingGateway.activeCalls[socketId];
     if (!roomId) return;
 
-    // Notify all users in the room that the call ended
     this.signalingGateway.server.to(roomId).emit('call-ended', { roomId });
 
-    // Remove all participants from activeCalls and leave room
     Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
       if (this.signalingGateway.activeCalls[sid] === roomId) {
         delete this.signalingGateway.activeCalls[sid];
@@ -63,6 +69,4 @@ export class AudioCallService {
       }
     });
   }
-
 }
-``
