@@ -1,19 +1,17 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { AudioCallService } from './audio-call.service';
 
-// audio call controller
 @Controller('audio-call')
 export class AudioCallController {
   constructor(private readonly audioCallService: AudioCallService) {}
 
   @Post('start')
-  startAudioCall(@Body() body: { userId: string; socketId: string }) {
- 
-    return this.audioCallService.startCall(body.userId, body.socketId);
+  async startAudioCall(@Body() body: { userId: number }) {
+    return await this.audioCallService.startCall(body.userId);
   }
 
   @Post('end')
-  endAudioCall(@Body() body: { socketId: string }) {
+  async endAudioCall(@Body() body: { socketId: string }) {
     this.audioCallService.endCall(body.socketId);
     return { status: 'OK', message: 'Call ended' };
   }

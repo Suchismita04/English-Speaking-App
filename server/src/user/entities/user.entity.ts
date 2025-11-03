@@ -17,7 +17,7 @@ export enum FluencyLevel {
   NATIVE = 'Native',
 }
 
-@Entity({ name: 'users' }) 
+@Entity({ name: 'users' })
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
@@ -41,19 +41,19 @@ export class User {
   @Column({ type: 'varchar', length: 50, nullable: true })
   fluencyLevel: FluencyLevel;
 
-  @Column({ type: 'boolean', default: true })   
+  @Column({ type: 'boolean', default: true })
   isOnline: boolean;
 
-  @Column({ type: 'boolean', default: false })  
+  @Column({ type: 'boolean', default: false })
   isOffline: boolean;
 
-  @Column({ type: 'boolean', default: false }) 
+  @Column({ type: 'boolean', default: false })
   onCall: boolean;
 
-  @Column({ type: 'timestamp', default: () => 'NOW()' }) 
+  @Column({ type: 'timestamp', default: () => 'NOW()' })
   created_at: Date;
 
-  @Column({ type: 'timestamp', default: () => 'NOW()', onUpdate: 'NOW()' }) 
+  @Column({ type: 'timestamp', default: () => 'NOW()', onUpdate: 'NOW()' })
   updated_at: Date;
 
   @OneToMany(() => SessionRoom, (sessionRoom) => sessionRoom.createdBy)
@@ -61,4 +61,8 @@ export class User {
 
   @OneToMany(() => SessionMembershipDetail, (membership) => membership.user)
   memberships: SessionMembershipDetail[];
+
+  @Column({ type: 'varchar', nullable: true })
+  socket_id: string | null;
+
 }
