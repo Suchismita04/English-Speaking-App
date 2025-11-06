@@ -55,18 +55,18 @@ export class AudioCallService {
     return { message: 'Partner found', roomId };
   }
 
-  endCall(socketId: string) {
-    const roomId = this.signalingGateway.activeCalls[socketId];
-    if (!roomId) return;
+  endCallByRoomId(roomId: string) {
+  if (!roomId) return;
 
-    this.signalingGateway.server.to(roomId).emit('call-ended', { roomId });
+  this.signalingGateway.server.to(roomId).emit('call-ended', { roomId });
 
-    Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
-      if (this.signalingGateway.activeCalls[sid] === roomId) {
-        delete this.signalingGateway.activeCalls[sid];
-        const socket = this.signalingGateway.server.sockets.sockets.get(sid);
-        if (socket) socket.leave(roomId);
-      }
-    });
-  }
+  Object.keys(this.signalingGateway.activeCalls).forEach(sid => {
+    if (this.signalingGateway.activeCalls[sid] === roomId) {
+      delete this.signalingGateway.activeCalls[sid];
+      const socket = this.signalingGateway.server.sockets.sockets.get(sid);
+      if (socket) socket.leave(roomId);
+    }
+  });
+}
+
 }

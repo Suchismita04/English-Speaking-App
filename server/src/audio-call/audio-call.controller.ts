@@ -11,8 +11,9 @@ export class AudioCallController {
   }
 
   @Post('end')
-  async endAudioCall(@Body() body: { socketId: string }) {
-    this.audioCallService.endCall(body.socketId);
-    return { status: 'OK', message: 'Call ended' };
-  }
+async endAudioCall(@Body() body: { roomId: string }) {
+  this.audioCallService.endCallByRoomId(body.roomId);
+  return { status: 'OK', message: 'Call ended' };
+}
+
 }

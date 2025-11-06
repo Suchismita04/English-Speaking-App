@@ -22,7 +22,7 @@ export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnec
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
 
   onlineUsers: { [socketId: string]: string } = {};
@@ -37,8 +37,8 @@ export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnec
     console.log(`User disconnected: ${userId} (${client.id})`);
 
     if (userId) {
-    
-      await this.userService.updateSocketId(Number(userId),null);
+
+      await this.userService.updateSocketId(Number(userId), null);
     }
 
     delete this.onlineUsers[client.id];
@@ -81,7 +81,7 @@ export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
   }
 
- 
+
   @SubscribeMessage('answer')
   sendAnswer(@MessageBody() data: CallData) {
     const targetSocket = Object.keys(this.onlineUsers).find(
@@ -112,13 +112,20 @@ export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnec
     console.log(`Call ended in room: ${roomId}`);
 
 
-    this.server.to(roomId).emit('call-ended', { roomId });
+    this.server.to(roomId).emit('call-ended', { roomId, message: "Call has been end" });
 
- 
+
     for (const [socketId, rId] of Object.entries(this.activeCalls)) {
       if (rId === roomId) delete this.activeCalls[socketId];
     }
 
     client.leave(roomId);
   }
+
+// for testing purpose
+  @SubscribeMessage('get-users')
+  getOnlineUsers() {
+    console.log(this.onlineUsers);
+  }
+
 }
