@@ -1,15 +1,14 @@
 import { Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
-// ProtectedRoute component to guard routes that require authentication
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const token = localStorage.getItem('authToken');
+  const accessToken = localStorage.getItem('access_token');
 
-  if (!token) {
+  if (!accessToken) {
     // Redirect to home page if not authenticated
     return <Navigate to="/" replace />;
   }
