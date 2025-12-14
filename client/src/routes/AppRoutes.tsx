@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home';
 import Calling from '../pages/Calling';
 import NotFound from '../pages/NotFound';
-// import ProtectedRoute from '../components/common/ProtectedRoute';
+import ProtectedRoute from '../components/common/ProtectedRoute';
 
 const AppRoutes = () => {
   return (
@@ -11,9 +11,9 @@ const AppRoutes = () => {
       <Route
         path="/connect"
         element={
-          // <ProtectedRoute>
+          <ProtectedRoute>
             <Calling />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       />
       <Route path="*" element={<NotFound />} />
