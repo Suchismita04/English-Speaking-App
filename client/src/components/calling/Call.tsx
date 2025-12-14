@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Users, PhoneCall, TrendingUp, History, MessageCircle, FileHeart, User as UserIcon, Menu, X, Sun, Moon, Monitor } from "lucide-react";
+import { Users, PhoneCall, TrendingUp, History, MessageCircle, FileHeart, User as UserIcon, Menu, X, Sun, Moon, Monitor, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import VideoCallSection from "./Random-call";
 import LiveRoomsSection from "./Live-room";
 import ProgressSection from "./Progress";
@@ -9,9 +10,13 @@ import FavoritePracticePartner from "./Favorite-partner";
 import ChatWithStrangers from "./Chat-with-stranger";
 
 const Call = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"call" | "rooms" | "progress" | "history" | "favorites" | "chat" | "profile">("call");
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
   const navItems = [
     { id: "call" as const, label: "Talk with Strangers", icon: PhoneCall },
@@ -28,6 +33,32 @@ const Call = () => {
     { value: "dark" as const, icon: Moon, label: "Dark" },
     { value: "system" as const, icon: Monitor, label: "System" },
   ];
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    
+    try {
+      const accessToken = localStorage.getItem("access_token");
+      
+      // Call logout API
+      await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+        },
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear tokens regardless of API response
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      
+      // Redirect to home page
+      navigate("/", { replace: true });
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white">
@@ -80,6 +111,21 @@ const Call = () => {
               })}
             </div>
           </nav>
+
+          {/* Logout Button */}
+          <div className="p-3">
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all cursor-pointer group bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg hover:from-red-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <LogOut 
+                size={20} 
+                className="transition-transform group-hover:scale-110"
+              />
+              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+            </button>
+          </div>
 
           {/* Theme Toggle Section */}
           <div className="p-4 border-t border-gray-200">
