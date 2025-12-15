@@ -2,6 +2,8 @@
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
+/* scrollbar thumb */
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(100, 100, 255, 0.3);
   border-radius: 10px;
