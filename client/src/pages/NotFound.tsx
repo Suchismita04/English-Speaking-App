@@ -41,6 +41,7 @@ const NotFound = () => {
             href="/"
             className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 cursor-pointer"
           >
+            // Home Icon
             <Home size={20} className="group-hover:scale-110 transition-transform" />
             <span>Go to Homepage</span>
           </a>
