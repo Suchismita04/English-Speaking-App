@@ -9,6 +9,7 @@ import { SessionRoomModule } from './session-room/session-room.module';
 import { SessionMembershipDetailModule } from './session-membership/session-membership.module';
 import { AuthModule } from './auth/auth.module';
 import { AudioCallModule } from './audio-call/audio-call.module';
+import { VoiceChatModule } from './ai-voice-chat/voice-chat/voice-chat.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { AudioCallModule } from './audio-call/audio-call.module';
     SessionRoomModule,
     SessionMembershipDetailModule,
     AuthModule,
-    AudioCallModule
+    AudioCallModule,
+    VoiceChatModule
   ],
   controllers: [AppController],
   providers: [AppService],
