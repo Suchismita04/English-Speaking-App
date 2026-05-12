@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { SessionRoom } from "src/session-room/entities/session-room.entity";
 import { SessionMembershipDetail } from "src/session-membership/entities/session-membership-details.entity";
 import { Exclude } from "class-transformer";
+import { ChatSession } from "src/ai-voice-chat/entities/chat-session.entity";
 
 export enum Gender {
   MALE = 'Male',
@@ -64,5 +65,8 @@ export class User {
 
   @Column({ type: 'varchar', nullable: true })
   socket_id!: string | null;
+
+  @OneToMany(()=> ChatSession,session=>session.user)
+  chatSessions!:ChatSession[]
 
 }
