@@ -20,7 +20,7 @@ interface CallData {
 @WebSocketGateway({ cors: true })
 export class SignalingGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(private readonly userService: UserService) { }
 
