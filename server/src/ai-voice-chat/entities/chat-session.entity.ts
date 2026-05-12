@@ -1,5 +1,6 @@
-import { CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { ChatMessage } from "./chat-message.entity";
+import { User } from "src/user/entities/user.entity";
 
 
 @Entity({name:'chat-session'})
@@ -10,6 +11,9 @@ id!:string
 @CreateDateColumn()
 createdAt!:Date
 
-@ManyToOne(()=>ChatMessage,message=>message.session)
+@ManyToOne(()=>User,user=>user.chatSessions)
+user!:User
+
+@OneToMany(()=>ChatMessage,message=>message.session)
 messages!:ChatMessage[]
 }
