@@ -6,7 +6,7 @@ import axios from 'axios';
 export class AiService {
   async generateMessage(prompt: string): Promise<string> {
     const response = await axios.post('http://localhost:11434/api/generate', {
-      modal: 'gemma:2b',
+      model: 'gemma:2b',
       prompt,
       stream: false,
     });

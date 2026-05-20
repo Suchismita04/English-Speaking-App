@@ -11,7 +11,7 @@ export class ChatMessage{
     content!:string;
 
     @Column()
-    role!:string;
+    role!:'user' | "assistant";
 
     @CreateDateColumn()
     createdAt!:Date;
