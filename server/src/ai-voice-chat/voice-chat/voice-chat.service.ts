@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { Repository } from 'typeorm';
 import { ChatSession } from '../entities/chat-session.entity';
+import { User } from 'src/user/entities/user.entity';
+import { error } from 'console';
 
 @Injectable()
 export class VoiceChatService {
@@ -16,21 +18,35 @@ export class VoiceChatService {
 
     @InjectRepository(ChatSession)
     private sessionRepo: Repository<ChatSession>,
+    // @InjectRepository(User)
+    // private userRepo: Repository<User>,
   ) {}
 
-  async handleVoice(filePath: string, sessionId: string) {
+  async handleVoice(filePath: string,userId: number, sessionId?: string) {
+    // const user = await this.userRepo.findOneBy({ id: userId });
+    // if (!user) {
+    //   throw new Error('user not found');
+    // }
+
     //for stt
     const userText = await this.speechService.speechToText(filePath);
     console.log('user text:', userText); //for debug
 
-    let session = await this.sessionRepo.findOne({ where: { id: sessionId } });
-    if (!session) {
-      session = this.sessionRepo.create({
-        id: sessionId, // use your hardcoded ID
+    let session;
+
+    if (sessionId) {
+      session = await this.sessionRepo.findOne({
+        where: { id: sessionId },
       });
-      await this.sessionRepo.save(session);
+
+      if (!session) throw new Error('Session not found');
     }
 
+    if (!sessionId) {
+      session = await this.sessionRepo.save({
+        user: { id: userId },
+      });
+    }
     //save message into the db
     const userMsg = this.messageRepo.create({
       content: userText,
@@ -54,8 +70,9 @@ export class VoiceChatService {
     await this.messageRepo.save(aiMsg);
 
     return {
+      sessionId: session.id,
       userText,
-      aiReply
+      aiReply,
     };
   }
 }
