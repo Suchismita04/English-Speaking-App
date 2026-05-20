@@ -6,21 +6,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ChatMessage } from '../entities/chat-message.entity';
 import { ChatSession } from '../entities/chat-session.entity';
-
-// import { AiModule } from '../ai-service/ai.module';
+import { VoiceChatController } from './voice-chat.controller';
+import { VoiceChatService } from './voice-chat.service';
+import { AiModule } from '../ai-service/ai.module';
+import { SpeechService } from '../speech/speech.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      ChatMessage,
-      ChatSession,
-    ]),
+  imports: [TypeOrmModule.forFeature([ChatMessage, ChatSession]), AiModule],
 
-    // AiModule,
-  ],
+  controllers: [VoiceChatController],
 
-//   controllers: [VoiceChatController],
-
-//   providers: [VoiceChatService],
+  providers: [VoiceChatService, SpeechService],
+  exports: [TypeOrmModule, VoiceChatService],
 })
 export class VoiceChatModule {}
