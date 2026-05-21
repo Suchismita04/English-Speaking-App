@@ -3,6 +3,7 @@ import {
   Controller,
   Post,
   Req,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -11,10 +12,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { VoiceChatService } from './voice-chat.service';
 import { diskStorage } from 'multer';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guards';
+import { TtsService } from '../tts/tts.service';
 
 @Controller('voice-chat')
 export class VoiceChatController {
-  constructor(private readonly voiceService: VoiceChatService) {}
+  constructor(
+    private readonly voiceService: VoiceChatService,
+    private readonly ttsService: TtsService,
+  ) {}
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
@@ -31,8 +36,21 @@ export class VoiceChatController {
   async handleVoiceController(
     @UploadedFile() file: Express.Multer.File,
     @Body('sessionId') sessionId: string,
-    @Req() req:any
+    @Req() req: any,
+    @Res() res: any,
   ) {
-    return this.voiceService.handleVoice(file.path, req.user.userId,sessionId);
+    const response = await this.voiceService.handleVoice(
+      file.path,
+      req.user.userId,
+      sessionId,
+    );
+    //for tts service
+    const audioBuffer = await this.ttsService.textToSpeech(response.clearMsg);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('X-Session-Id', response.sessionId);
+    res.setHeader('X-User-Text', encodeURIComponent(response.userText));
+    res.setHeader('X-AI-Text', encodeURIComponent(response.clearMsg));
+
+    return res.send(audioBuffer);
   }
 }

@@ -7,12 +7,15 @@ import { Repository } from 'typeorm';
 import { ChatSession } from '../entities/chat-session.entity';
 import { User } from 'src/user/entities/user.entity';
 import { error } from 'console';
+import { TtsService } from '../tts/tts.service';
+import { cleanTextForSpeech } from 'src/utilities/cleanTextForSpeech';
 
 @Injectable()
 export class VoiceChatService {
   constructor(
     private speechService: SpeechService,
     private aiService: AiService,
+    
     @InjectRepository(ChatMessage)
     private messageRepo: Repository<ChatMessage>,
 
@@ -21,6 +24,8 @@ export class VoiceChatService {
     // @InjectRepository(User)
     // private userRepo: Repository<User>,
   ) {}
+
+  
 
   async handleVoice(filePath: string,userId: number, sessionId?: string) {
     // const user = await this.userRepo.findOneBy({ id: userId });
@@ -32,7 +37,7 @@ export class VoiceChatService {
     const userText = await this.speechService.speechToText(filePath);
     console.log('user text:', userText); //for debug
 
-    let session;
+    let session:any;
 
     if (sessionId) {
       session = await this.sessionRepo.findOne({
@@ -57,12 +62,15 @@ export class VoiceChatService {
     await this.messageRepo.save(userMsg);
 
     const aiReply = await this.aiService.generateMessage(userText);
+    const clearMsg= cleanTextForSpeech(aiReply)
 
     console.log('ai reply:', aiReply);
 
+   
+
     //save message into the db
     const aiMsg = this.messageRepo.create({
-      content: aiReply,
+      content: clearMsg,
       role: 'assistant',
       session: session!,
     });
@@ -72,7 +80,8 @@ export class VoiceChatService {
     return {
       sessionId: session.id,
       userText,
-      aiReply,
+      clearMsg,
+     
     };
   }
 }
