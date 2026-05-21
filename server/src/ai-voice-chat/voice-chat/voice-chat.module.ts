@@ -10,13 +10,14 @@ import { VoiceChatController } from './voice-chat.controller';
 import { VoiceChatService } from './voice-chat.service';
 import { AiModule } from '../ai-service/ai.module';
 import { SpeechService } from '../speech/speech.service';
+import { TtsService } from '../tts/tts.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ChatMessage, ChatSession]), AiModule],
 
   controllers: [VoiceChatController],
 
-  providers: [VoiceChatService, SpeechService],
+  providers: [VoiceChatService, SpeechService,TtsService],
   exports: [TypeOrmModule, VoiceChatService],
 })
 export class VoiceChatModule {}
