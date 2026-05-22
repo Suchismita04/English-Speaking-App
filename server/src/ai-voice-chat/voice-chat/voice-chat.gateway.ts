@@ -30,6 +30,7 @@ export class VoiceChatGateway {
       userId,
       sessionId,
     );
+    
 
     //for tts part
     const audioBuffer = await this.ttsService.textToSpeech(response.clearMsg);
