@@ -27,14 +27,65 @@ export class VoiceChatService {
 
   
 
-  async handleVoice(filePath: string,userId: number, sessionId?: string) {
-    // const user = await this.userRepo.findOneBy({ id: userId });
-    // if (!user) {
-    //   throw new Error('user not found');
-    // }
+  // async handleVoice(filePath: string,userId: number, sessionId?: string) {
+  
 
-    //for stt
-    const userText = await this.speechService.speechToText(filePath);
+  //   //for stt
+  //   const userText = await this.speechService.speechToText(filePath);
+  //   console.log('user text:', userText); //for debug
+
+  //   let session:any;
+
+  //   if (sessionId) {
+  //     session = await this.sessionRepo.findOne({
+  //       where: { id: sessionId },
+  //     });
+
+  //     if (!session) throw new Error('Session not found');
+  //   }
+
+  //   if (!sessionId) {
+  //     session = await this.sessionRepo.save({
+  //       user: { id: userId },
+  //     });
+  //   }
+  //   //save message into the db
+  //   const userMsg = this.messageRepo.create({
+  //     content: userText,
+  //     role: 'user',
+  //     session: session!,
+  //   });
+
+  //   await this.messageRepo.save(userMsg);
+
+  //   const aiReply = await this.aiService.generateMessage(userText);
+  //   const clearMsg= cleanTextForSpeech(aiReply)
+
+  //   console.log('ai reply:', aiReply);
+
+   
+
+  //   //save message into the db
+  //   const aiMsg = this.messageRepo.create({
+  //     content: clearMsg,
+  //     role: 'assistant',
+  //     session: session!,
+  //   });
+
+  //   await this.messageRepo.save(aiMsg);
+
+  //   return {
+  //     sessionId: session.id,
+  //     userText,
+  //     clearMsg,
+     
+  //   };
+  // }
+
+
+  async handleVoiceBuffer(buffer:Buffer,userId: number, sessionId?: string){
+       //for stt
+    const userText = await this.speechService.speechToText(buffer);
     console.log('user text:', userText); //for debug
 
     let session:any;
