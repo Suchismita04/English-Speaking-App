@@ -9,9 +9,10 @@ import { AiModule } from '../ai-service/ai.module';
 import { SpeechService } from '../speech/speech.service';
 import { TtsService } from '../tts/tts.service';
 import { VoiceChatGateway } from './voice-chat.gateway';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ChatMessage, ChatSession]), AiModule],
+  imports: [TypeOrmModule.forFeature([ChatMessage, ChatSession]), AiModule,AuthModule],
 
   // controllers: [VoiceChatController],
 
