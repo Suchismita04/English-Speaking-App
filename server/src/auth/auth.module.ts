@@ -21,15 +21,16 @@ import { JwtAuthGuard } from "src/common/guards/jwt-auth.guards";
             imports: [ConfigModule],
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({
-                secret: configService.get<string>("JWT_SECRET"),
+                secret: configService.get<string>("ACCESS_TOKEN_SECRET"),
                 signOptions: {
-                    expiresIn: Number(configService.get<string>("JWT_EXPIRES")),
+                    expiresIn: Number(configService.get<string>("ACCESS_TOKEN_EXPIR")),
                 }
             })
         })
     ],
     controllers: [AuthController],
     providers: [AuthService, JwtStrategy, JwtAuthGuard, TokenBlacklistService ],
+    exports:[JwtModule]
 })
 
 export class AuthModule{}
