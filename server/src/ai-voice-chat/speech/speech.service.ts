@@ -1,62 +1,70 @@
-import { Injectable } from "@nestjs/common";
-import Groq from "groq-sdk";
-import * as fs from "fs";
-import * as path from "path";
-import ffmpeg = require("fluent-ffmpeg");
-
-// FORCE FFmpeg path
-ffmpeg.setFfmpegPath("C://ffmpeg//bin//ffmpeg.exe");
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 
 @Injectable()
-export class SpeechService {
-  private groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY,
-  });
+export class DeepgramService implements OnModuleInit {
+  private deepgram: any;
+  public connections: Record<number, any> = {};
 
-  async speechToText(buffer: Buffer): Promise<string> {
-    const id = Date.now();
-
-    const inputPath = path.join(
-      "E:/English Speaking App/server/uploads",
-      `temp-${id}.webm`
-    );
-
-    const outputPath = path.join(
-      "E:/English Speaking App/server/uploads",
-      `temp-${id}.wav`
-    );
-
-    await fs.promises.writeFile(inputPath, buffer);
-    console.log("Saved input:", inputPath);
-
-    await this.convertToWav(inputPath, outputPath);
-
-    const response = await this.groq.audio.transcriptions.create({
-      file: fs.createReadStream(outputPath),
-      model: "whisper-large-v3",
-    });
-
-    fs.unlinkSync(inputPath);
-    fs.unlinkSync(outputPath);
-
-    return response.text;
+  onModuleInit() {
+    this.deepgram = createClient(process.env.DEEPGRAM_API_KEY);
   }
 
-  private convertToWav(input: string, output: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      ffmpeg(input)
-        .audioCodec("pcm_s16le")
-        .format("wav")
-        .on("start", (cmd) => console.log("FFmpeg command:", cmd))
-        .on("end", () => {
-          console.log("Conversion done");
-          resolve();
-        })
-        .on("error", (err) => {
-          console.error("FFmpeg error:", err);
-          reject(err);
-        })
-        .save(output);
+  createConnection(userId: number, onTranscript: (text: string) => void) {
+    const connection = this.deepgram.listen.live({
+      model: 'nova-2',
+      language: 'en-US',
+      encoding: 'linear16',
+      sample_rate: 16000, // SHOULD BE MATCH WITH FRONTEND
     });
+
+    connection.on(LiveTranscriptionEvents.Open, () => {
+      console.log(` Deepgram connected: ${userId}`);
+      connection.isReady = true;
+    });
+
+    connection.on(LiveTranscriptionEvents.Transcript, (data: any) => {
+      console.log("RAW:", JSON.stringify(data));
+
+      const text = data.channel?.alternatives[0]?.transcript;
+
+      if (text && text.trim() !== '') {
+        console.log('Transcript:', text);
+        onTranscript(text);
+      }
+    });
+
+    connection.on(LiveTranscriptionEvents.Error, (err: any) => {
+      console.error(' Deepgram error:', err);
+    });
+
+    connection.on(LiveTranscriptionEvents.Close, () => {
+      console.log(` Deepgram closed: ${userId}`);
+    });
+
+    this.connections[userId] = connection;
+  }
+
+  sendAudio(userId: number, buffer: Buffer) {
+    const conn = this.connections[userId];
+
+    if (!conn) {
+      console.log(" No DG connection");
+      return;
+    }
+
+    if (!conn.isReady) {
+      console.log(" DG not ready yet");
+      return;
+    }
+
+    console.log(" Sending audio:", buffer.length);
+
+    conn.send(buffer);
+  }
+
+  close(userId: number) {
+    this.connections[userId]?.finish();
+    delete this.connections[userId];
   }
 }
