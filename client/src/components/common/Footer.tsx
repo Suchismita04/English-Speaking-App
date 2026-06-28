@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 
+// Footer component with smooth scrolling and active section detection
 const Footer = () => {
   const [activeSection, setActiveSection] = useState("/");
 
