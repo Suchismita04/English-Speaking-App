@@ -21,7 +21,7 @@ export class VoiceChatGateway {
   ) {}
 
   handleConnection(client: any) {
-    const token = client.handshake.auth?.token;
+    const token = client.handshake.auth?.token || client.handshake.query?.token;;
 
     if (!token) return client.disconnect();
 
@@ -29,7 +29,8 @@ export class VoiceChatGateway {
       const decoded = this.jwtService.verify(token);
       client.user = decoded;
       console.log('User connected:', decoded);
-    } catch {
+    } catch(err) {
+      console.error("Socket IO Error:: "+err)
       client.disconnect();
     }
   }
