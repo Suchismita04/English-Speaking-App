@@ -16,6 +16,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     handleRequest(err: any, user: any, info: any, context: ExecutionContext, status?: any) {
+            // console.log('JWT Guard - err:', err);
+            // console.log('JWT Guard - user:', user);
+            // console.log('JWT Guard - info:', info);
 
         if (err || !user) {
             throw err || new UnauthorizedException();
@@ -27,6 +30,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         }
         const request = context.switchToHttp().getRequest();
         const token = request.headers.authorization?.split(' ')[1];
+
+        console.log('JWT Guard - token extracted:', token ? 'YES' : 'NO');
+        console.log('JWT Guard - auth header:', request.headers.authorization);
 
         if (token && this.blacklistService.isBlacklisted(token)) {
             throw new UnauthorizedException('Token has been logged out')

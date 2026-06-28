@@ -23,7 +23,7 @@ import { JwtAuthGuard } from "src/common/guards/jwt-auth.guards";
             useFactory: (configService: ConfigService) => ({
                 secret: configService.get<string>("ACCESS_TOKEN_SECRET"),
                 signOptions: {
-                    expiresIn: Number(configService.get<string>("ACCESS_TOKEN_EXPIR")),
+                    expiresIn: configService.get<any>("ACCESS_TOKEN_EXPIRE") || '30m',
                 }
             })
         })

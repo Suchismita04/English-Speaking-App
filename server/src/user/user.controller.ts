@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
+import { JwtAuthGuard } from "src/common/guards/jwt-auth.guards";
 
 
 
@@ -13,9 +14,22 @@ export class UserController{
         return this.userService.registerUser(createUserDto)
     }
 
+    @UseGuards(JwtAuthGuard)
+    @Get("getUserProfile")
+    async getUserProfile(@Req() req ){
+        // console.log("use data:",req.user)
+        return await this.userService.findById(req.user.userId)
+    }
+
     @Get("getAllTypesOfUser")
-   async getAllTypesOfUser(){
-        return  await this.userService.getAllTypesOfUser()
+   async getAllTypesOfUser(
+        @Query('search') search?: string,
+        @Query('gender') gender?: string,
+        @Query('fluencyLevel') fluencyLevel?: string,
+        @Query('isOnline') isOnline?: string
+    ){
+        const isOnlineBool = isOnline === 'true' ? true : isOnline === 'false' ? false : undefined;
+        return  await this.userService.getAllTypesOfUser(search, gender, fluencyLevel, isOnlineBool)
     }
 
 
