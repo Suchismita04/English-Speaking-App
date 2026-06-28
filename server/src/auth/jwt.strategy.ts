@@ -9,10 +9,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     constructor(private configService: ConfigService) {
         const jwtSecret = configService.get<string>('ACCESS_TOKEN_SECRET')
 
+        // console.log('JWT Secret from config:', jwtSecret ? 'SET' : 'NOT SET');
+
         if (!jwtSecret) {
             throw new Error('JWT_SECRET is not defined in environment variables');
         }
-        
+
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey: jwtSecret,
@@ -20,6 +22,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     validate(payload: any): any {
+        // console.log('JWT Payload:', payload);
+        // console.log('JWT Strategy validate called');
         return {userId: payload.sub, email: payload.email, username: payload.username}
     }
 }

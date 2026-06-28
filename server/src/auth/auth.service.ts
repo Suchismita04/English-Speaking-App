@@ -36,17 +36,40 @@ export class AuthService {
         const { password, ...userDetails } = user
         const payload = { sub: userDetails.id, username: userDetails.user_name, email: userDetails.user_email }
 
+        const accessExpire = this.configService.get<any>('ACCESS_TOKEN_EXPIRE') ?? '30m'
+        const refreshExpire = this.configService.get<any>('REFRESH_TOKEN_EXPIRE') ?? '1d'
+
+        console.log('Token expiry settings - ACCESS_TOKEN_EXPIRE:', accessExpire, 'type:', typeof accessExpire);
+        console.log('Token expiry settings - REFRESH_TOKEN_EXPIRE:', refreshExpire, 'type:', typeof refreshExpire);
+
+        // Convert string numbers to actual numbers for JWT
+        const accessExpireValue = typeof accessExpire === 'string' && !isNaN(Number(accessExpire))
+            ? Number(accessExpire)
+            : accessExpire;
+        const refreshExpireValue = typeof refreshExpire === 'string' && !isNaN(Number(refreshExpire))
+            ? Number(refreshExpire)
+            : refreshExpire;
+
+        console.log('Token expiry after conversion - ACCESS:', accessExpireValue, 'type:', typeof accessExpireValue);
+        console.log('Token expiry after conversion - REFRESH:', refreshExpireValue, 'type:', typeof refreshExpireValue);
+
+        const accessToken = await this.jwtService.signAsync(payload, {
+            secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
+            expiresIn: accessExpireValue
+        })
+
+        const refreshToken = await this.jwtService.signAsync(payload, {
+            secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
+            expiresIn: refreshExpireValue
+        })
+
+        console.log('Access token generated (first 50 chars):', accessToken.substring(0, 50));
+
         return {
             success: true,
             message: 'user logged in successfully...',
-            accessToken: await this.jwtService.signAsync(payload, {
-                secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
-                expiresIn: this.configService.get<any>('ACCESS_TOKEN_EXPIRE') ?? '30m'
-            }),
-            refreshToken: await this.jwtService.signAsync(payload, {
-                secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-                expiresIn: this.configService.get<any>('REFRESH_TOKEN_EXPIRE') ?? '1d'
-            })
+            accessToken: accessToken,
+            refreshToken: refreshToken
         }
     }
 

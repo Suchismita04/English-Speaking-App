@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectRepository(User) private userRepo: Repository<User>) {}
+  constructor(@InjectRepository(User) private userRepo: Repository<User>) { }
 
   async registerUser(dto: CreateUserDto): Promise<User> {
     const existingUser = await this.userRepo.findOne({ where: { user_email: dto.user_email } });
@@ -32,8 +32,29 @@ export class UserService {
     return savedUserWithoutPwd;
   }
 
-  async getAllTypesOfUser(): Promise<User[]> {
-    return await this.userRepo.find();
+  async getAllTypesOfUser(search?: string, gender?: string, fluencyLevel?: string, isOnline?: boolean): Promise<User[]> {
+    const queryBuilder = this.userRepo.createQueryBuilder('user');
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(user.user_name LIKE :search OR user.user_email LIKE :search OR user.country LIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    if (gender) {
+      queryBuilder.andWhere('user.gender = :gender', { gender });
+    }
+
+    if (fluencyLevel) {
+      queryBuilder.andWhere('user.fluencyLevel = :fluencyLevel', { fluencyLevel });
+    }
+
+    if (isOnline !== undefined) {
+      queryBuilder.andWhere('user.isOnline = :isOnline', { isOnline });
+    }
+
+    return await queryBuilder.getMany();
   }
 
   async findById(userId: number): Promise<User | null> {
@@ -41,7 +62,7 @@ export class UserService {
   }
 
   async updateSocketId(userId: number, socketId: string | null): Promise<void> {
-  await this.userRepo.update({ id: userId }, { socket_id: socketId });
-}
+    await this.userRepo.update({ id: userId }, { socket_id: socketId });
+  }
 
 }
