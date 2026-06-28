@@ -5,30 +5,30 @@ import { SessionMembershipDetail } from "src/session-membership/entities/session
 @Entity({ name: 'session_rooms' }) 
 export class SessionRoom {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  name: string;
+  name!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  description: string;
+  description!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  logo: string;
+  logo!: string;
 
   @Column({ type: 'timestamp', default: () => 'NOW()' }) 
-  created_at: Date;
+  created_at!: Date;
 
   @Column({ type: 'timestamp', default: () => 'NOW()', onUpdate: 'NOW()' })
-  updated_at: Date;
+  updated_at!: Date;
 
   @Column({ type: 'int' })
-  created_by: number;
+  created_by!: number;
 
   @ManyToOne(() => User, (user) => user.sessionRooms)
   @JoinColumn({ name: 'created_by' })
-  createdBy: User;
+  createdBy!: User;
 
   @OneToMany(() => SessionMembershipDetail, (membership) => membership.sessionRoom)
-  memberships: SessionMembershipDetail[];
+  memberships!: SessionMembershipDetail[];
 }
