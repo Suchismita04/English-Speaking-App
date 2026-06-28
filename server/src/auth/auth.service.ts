@@ -41,11 +41,11 @@ export class AuthService {
             message: 'user logged in successfully...',
             accessToken: await this.jwtService.signAsync(payload, {
                 secret: this.configService.get<string>('ACCESS_TOKEN_SECRET'),
-                expiresIn: Number(this.configService.get<string>('ACCESS_TOKEN_EXPIRE'))
+                expiresIn: this.configService.get<any>('ACCESS_TOKEN_EXPIRE') ?? '30m'
             }),
             refreshToken: await this.jwtService.signAsync(payload, {
                 secret: this.configService.get<string>('REFRESH_TOKEN_SECRET'),
-                expiresIn: Number(this.configService.get<string>('REFRESH_TOKEN_EXPIRE'))
+                expiresIn: this.configService.get<any>('REFRESH_TOKEN_EXPIRE') ?? '1d'
             })
         }
     }
