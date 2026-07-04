@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, User as UserIcon, MessageCircle } from "lucide-react";
 
 type User = {
@@ -23,6 +23,26 @@ type Room = {
   isLive: boolean;
 };
 
+// Minimal shape needed from /user/getUserProfile (used to know the current user's id)
+type ApiUserProfile = {
+  id: number;
+  user_name: string;
+};
+
+// Response shape from POST /session-room/createRoom
+type CreateRoomResponse = {
+  message: string;
+  room: {
+    id: number;
+    name: string;
+    description: string;
+    logo: string;
+    created_at: string;
+    updated_at: string;
+    created_by: number;
+  };
+};
+
 const dummyUsers: User[] = [
   { id: "1", name: "Ariana", avatar: "/src/assets/images/testimonial1.png", isOnline: true, onCall: false, level: "Beginner", gender: "Female", country: "USA" },
   { id: "2", name: "David", avatar: "/src/assets/images/testimonial2.png", isOnline: true, onCall: true, level: "Intermediate", gender: "Male", country: "India" },
@@ -37,23 +57,116 @@ const dummyRooms: Room[] = [
   { id: "r4", name: "Movie Discussion Club", host: "Emma", participants: 15, maxParticipants: 25, level: "Mixed", topic: "Entertainment & Culture", isLive: true },
 ];
 
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = `${RAW_BASE_URL}/api/v1`;
+const DEFAULT_ROOM_LOGO = "https://exam.com/logo.png";
+
 const LiveRoomsSection = () => {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [roomName, setRoomName] = useState("");
   const [roomTopic, setRoomTopic] = useState("");
+  const [roomDescription, setRoomDescription] = useState("");
+  const [roomLogo, setRoomLogo] = useState("");
+
+  const [rooms, setRooms] = useState<Room[]>(dummyRooms);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [createRoomError, setCreateRoomError] = useState<string | null>(null);
+
+  const accessToken = localStorage.getItem("access_token");
+
+  // Fetch the logged-in user's id up front, so it's ready for createdBy
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/getUserProfile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch current user: ${response.status}`);
+        }
+
+        const data: ApiUserProfile = await response.json();
+        setCurrentUserId(data.id);
+      } catch (err) {
+        console.error("Error fetching current user for room creation:", err);
+      }
+    };
+
+    fetchCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleJoinRoom = (roomId: string) => {
     console.log("Joining room:", roomId);
   };
 
-  const handleCreateRoom = () => {
-    if (roomName && selectedUsers.length > 0) {
-      console.log("Creating room:", { roomName, roomTopic, users: selectedUsers });
-      setShowCreateRoom(false);
-      setSelectedUsers([]);
-      setRoomName("");
-      setRoomTopic("");
+  const resetCreateRoomForm = () => {
+    setShowCreateRoom(false);
+    setSelectedUsers([]);
+    setRoomName("");
+    setRoomTopic("");
+    setRoomDescription("");
+    setRoomLogo("");
+    setCreateRoomError(null);
+  };
+
+  const handleCreateRoom = async () => {
+    if (!roomName.trim()) return;
+
+    if (!currentUserId) {
+      setCreateRoomError("Could not identify the current user. Please try again.");
+      return;
+    }
+
+    setIsCreatingRoom(true);
+    setCreateRoomError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/session-room/createRoom`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          name: roomName,
+          description: roomDescription || roomTopic || "A session room for English learners",
+          logo: roomLogo || DEFAULT_ROOM_LOGO,
+          createdBy: currentUserId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create room: ${response.status}`);
+      }
+
+      const data: CreateRoomResponse = await response.json();
+
+      const newRoom: Room = {
+        id: String(data.room.id),
+        name: data.room.name,
+        host: "You",
+        participants: selectedUsers.length,
+        maxParticipants: Math.max(selectedUsers.length, 10),
+        level: "Mixed",
+        topic: data.room.description,
+        isLive: true,
+      };
+
+      setRooms((prev) => [newRoom, ...prev]);
+      resetCreateRoomForm();
+    } catch (err) {
+      console.error("Error creating room:", err);
+      setCreateRoomError(err instanceof Error ? err.message : "Something went wrong while creating the room.");
+    } finally {
+      setIsCreatingRoom(false);
     }
   };
 
@@ -92,7 +205,13 @@ const LiveRoomsSection = () => {
       {showCreateRoom && (
         <div className="mb-6 bg-white rounded-3xl shadow-xl p-6 border-2 border-purple-200">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Create Your Own Room</h3>
-          
+
+          {createRoomError && (
+            <div className="mb-4 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm">
+              {createRoomError}
+            </div>
+          )}
+
           <div className="space-y-4 mb-4">
             <input
               type="text"
@@ -107,6 +226,20 @@ const LiveRoomsSection = () => {
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={roomTopic}
               onChange={(e) => setRoomTopic(e.target.value)}
+            />
+            <textarea
+              placeholder="Description (optional)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              rows={2}
+              value={roomDescription}
+              onChange={(e) => setRoomDescription(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Logo URL (optional)"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              value={roomLogo}
+              onChange={(e) => setRoomLogo(e.target.value)}
             />
           </div>
 
@@ -141,19 +274,15 @@ const LiveRoomsSection = () => {
           <div className="flex gap-3">
             <button
               onClick={handleCreateRoom}
-              disabled={!roomName || selectedUsers.length === 0}
+              disabled={!roomName.trim() || isCreatingRoom}
               className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition cursor-pointer"
             >
-              Create Room
+              {isCreatingRoom ? "Creating..." : "Create Room"}
             </button>
             <button
-              onClick={() => {
-                setShowCreateRoom(false);
-                setSelectedUsers([]);
-                setRoomName("");
-                setRoomTopic("");
-              }}
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition cursor-pointer"
+              onClick={resetCreateRoomForm}
+              disabled={isCreatingRoom}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition cursor-pointer disabled:opacity-50"
             >
               Cancel
             </button>
@@ -162,7 +291,7 @@ const LiveRoomsSection = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dummyRooms.map((room) => (
+        {rooms.map((room) => (
           <div
             key={room.id}
             className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-6 border border-gray-100"
