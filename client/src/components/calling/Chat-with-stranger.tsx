@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Video, Phone, Search, MoreVertical, Smile, Paperclip, Crown } from "lucide-react";
+import { io, Socket } from "socket.io-client";
 
 type UserType = {
   id: string;
@@ -20,20 +21,56 @@ type Message = {
   time: string;
 };
 
-const dummyUsers: UserType[] = [
-  { id: "1", name: "Sophia", avatar: "/src/assets/images/testimonial1.png", isOnline: true, level: "Intermediate", country: "USA", isPremium: true, lastMessage: "Let's practice tomorrow!", unreadCount: 2 },
-  { id: "2", name: "James", avatar: "/src/assets/images/testimonial2.png", isOnline: true, level: "Beginner", country: "India", isPremium: false, lastMessage: "Thanks for the tips!", unreadCount: 0 },
-  { id: "3", name: "Emily", avatar: "/src/assets/images/testimonial3.png", isOnline: false, level: "Advanced", country: "UK", isPremium: true, lastMessage: "See you later", unreadCount: 0 },
-  { id: "4", name: "Ryan", avatar: "/src/assets/images/testimonial1.png", isOnline: true, level: "Intermediate", country: "Canada", isPremium: false, lastMessage: "Great session today!", unreadCount: 1 },
-];
+// Exact shape returned by /user/getAllTypesOfUser
+type ApiUser = {
+  id: number;
+  user_name: string;
+  user_email: string;
+  password: string;
+  country: string | null;
+  gender: "Male" | "Female" | "Other" | null;
+  fluencyLevel: "Beginner" | "Intermediate" | "Advanced" | null;
+  isOnline: boolean;
+  isOffline: boolean;
+  onCall: boolean;
+  created_at: string;
+  updated_at: string;
+  socket_id: string | null;
+};
 
-const initialMessages: Message[] = [
-  { id: "1", sender: "partner", text: "Hi! How are you?", time: "3:00 PM" },
-  { id: "2", sender: "me", text: "I'm good! How about you?", time: "3:01 PM" },
-  { id: "3", sender: "partner", text: "Doing great, practicing English!", time: "3:02 PM" },
-  { id: "4", sender: "me", text: "That's awesome! What topics are you focusing on?", time: "3:03 PM" },
-  { id: "5", sender: "partner", text: "Business conversations and presentation skills", time: "3:04 PM" },
-];
+// Minimal shape needed from /user/getUserProfile
+type ApiUserProfile = {
+  id: number;
+  user_name: string;
+};
+
+// Incoming socket message payload — adjust the event name / field names once
+// confirmed against your backend's actual Socket.IO emit contract.
+type IncomingSocketMessage = {
+  from: string | number;
+  text: string;
+};
+
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = `${RAW_BASE_URL}/api/v1`;
+
+const getDefaultAvatar = (gender: ApiUser["gender"]) => {
+  if (gender === "Female") return "/src/assets/images/testimonial3.png";
+  if (gender === "Male") return "/src/assets/images/testimonial2.png";
+  return "/src/assets/images/testimonial1.png";
+};
+
+const mapApiUserToUserType = (u: ApiUser): UserType => ({
+  id: String(u.id),
+  name: u.user_name,
+  avatar: getDefaultAvatar(u.gender),
+  isOnline: u.isOnline,
+  level: u.fluencyLevel ?? "Beginner",
+  country: u.country ?? "Unknown",
+  isPremium: false, // not provided by API yet
+  lastMessage: "",
+  unreadCount: 0,
+});
 
 const getLevelColor = (level: string) => {
   switch (level) {
@@ -46,36 +83,208 @@ const getLevelColor = (level: string) => {
 
 const ChatWithStrangersSection = () => {
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+
+  // Messages are stored per-user, keyed by user id, so each conversation stays independent
+  const [messagesByUser, setMessagesByUser] = useState<Record<string, Message[]>>({});
+
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const currentUserIsPremium = true;
 
+  // API-driven users state
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
+
+  // Logged-in user's own id, used to exclude self from the chat list
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Socket.IO connection
+  const socketRef = useRef<Socket | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [socketStatusMessage, setSocketStatusMessage] = useState<string | null>(null);
+
+  const currentMessages = selectedUser ? messagesByUser[selectedUser.id] ?? [] : [];
+  const isTyping = selectedUser ? typingUserId === selectedUser.id : false;
+
+  // Fetch the logged-in user's own profile, so we can exclude them from the chat list
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const accessToken = localStorage.getItem("access_token");
+
+        const response = await fetch(`${API_BASE_URL}/user/getUserProfile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch current user: ${response.status}`);
+        }
+
+        const data: ApiUserProfile = await response.json();
+        setCurrentUserId(String(data.id));
+      } catch (err) {
+        console.error("Error fetching current user profile:", err);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  // Fetch all users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      setUsersError(null);
+
+      try {
+        const accessToken = localStorage.getItem("access_token");
+
+        const response = await fetch(`${API_BASE_URL}/user/getAllTypesOfUser`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch users: ${response.status}`);
+        }
+
+        const data: ApiUser[] = await response.json();
+        setUsers(data.map(mapApiUserToUserType));
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setUsersError(err instanceof Error ? err.message : "Something went wrong while fetching users.");
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Connect via Socket.IO (not raw WebSocket) using the stored access token
+  const handleIncomingMessage = useCallback((data: IncomingSocketMessage) => {
+    if (!data?.text || data?.from === undefined) return;
+
+    const fromId = String(data.from);
+    const incoming: Message = {
+      id: Date.now().toString(),
+      sender: "partner",
+      text: data.text,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    // Route the incoming message into that specific user's conversation only
+    setMessagesByUser((prev) => ({
+      ...prev,
+      [fromId]: [...(prev[fromId] ?? []), incoming],
+    }));
+  }, []);
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem("access_token");
+    if (!accessToken) {
+      console.warn("No access_token found in localStorage — skipping socket connection.");
+      setSocketStatusMessage("Not logged in — chat is offline.");
+      return;
+    }
+
+    // Socket.IO client handles its own handshake, reconnection and backoff —
+    // no need to manually manage WebSocket readyState or reconnect timers.
+    const socket = io(RAW_BASE_URL, {
+      query: { token: accessToken },
+      transports: ["websocket"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 15000,
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("Socket.IO connected:", socket.id);
+      setIsSocketConnected(true);
+      setSocketStatusMessage(null);
+    });
+
+    // Adjust "receive_message" / "message" to whatever event name your backend
+    // actually emits — check this against what worked in EchoAPI.
+    socket.on("message", handleIncomingMessage);
+    socket.on("receive_message", handleIncomingMessage);
+
+    socket.on("disconnect", (reason) => {
+      console.log("Socket.IO disconnected:", reason);
+      setIsSocketConnected(false);
+      setSocketStatusMessage(reason === "io server disconnect" ? "Disconnected by server." : "Reconnecting...");
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Socket.IO connection error:", err.message);
+      setSocketStatusMessage(`Connection error: ${err.message}`);
+    });
+
+    return () => {
+      socket.off("message", handleIncomingMessage);
+      socket.off("receive_message", handleIncomingMessage);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [handleIncomingMessage]);
+
   const handleSendMessage = () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !selectedUser) return;
+
+    const targetId = selectedUser.id;
+
     const newMessage: Message = {
       id: Date.now().toString(),
       sender: "me",
       text: inputText,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-    setMessages([...messages, newMessage]);
+
+    // Append only to the conversation with this specific user
+    setMessagesByUser((prev) => ({
+      ...prev,
+      [targetId]: [...(prev[targetId] ?? []), newMessage],
+    }));
+
+    // Emit over Socket.IO if connected — adjust "send_message" to your backend's
+    // actual event name (whatever you called in EchoAPI to send successfully).
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("send_message", {
+        to: targetId,
+        text: inputText,
+      });
+    } else {
+      console.warn("Socket not connected — message saved locally but not sent to server.");
+    }
+
     setInputText("");
 
-    // Simulate typing indicator
-    setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 2000);
+    // Simulate typing indicator scoped to this conversation only
+    setTypingUserId(targetId);
+    setTimeout(() => {
+      setTypingUserId((current) => (current === targetId ? null : current));
+    }, 2000);
   };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [currentMessages]);
 
-  const filteredUsers = dummyUsers.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter((user) => user.id !== currentUserId) // exclude yourself from the chat list
+    .filter((user) => user.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-white px-4 py-6 pt-20 lg:pt-6">
@@ -83,7 +292,15 @@ const ChatWithStrangersSection = () => {
         {/* Header */}
         <div className="mb-6">
           <h2 className="text-3xl font-bold text-gray-800 mb-2">Messages</h2>
-          <p className="text-gray-600">Connect and practice with learners worldwide</p>
+          <p className="text-gray-600">
+            Connect and practice with learners worldwide
+            {isSocketConnected && (
+              <span className="ml-2 text-xs text-green-600 font-semibold">• Live</span>
+            )}
+            {!isSocketConnected && socketStatusMessage && (
+              <span className="ml-2 text-xs text-orange-500 font-semibold">• {socketStatusMessage}</span>
+            )}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)]">
@@ -105,48 +322,63 @@ const ChatWithStrangersSection = () => {
 
             {/* User List */}
             <div className="flex-1 overflow-y-auto">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => setSelectedUser(user)}
-                  className={`flex items-center gap-3 p-4 hover:bg-gray-50 transition cursor-pointer border-b border-gray-50 ${
-                    selectedUser?.id === user.id ? "bg-blue-50" : ""
-                  }`}
-                >
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-                    />
-                    {user.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
-                    )}
-                    {user.isPremium && (
-                      <span className="absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full p-1">
-                        <Crown size={10} className="text-white" fill="currentColor" />
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold text-gray-800 truncate">{user.name}</p>
-                      {user.unreadCount! > 0 && (
-                        <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                          {user.unreadCount}
-                        </span>
-                      )}
+              {loadingUsers ? (
+                <p className="text-center text-gray-500 py-8 px-4">Loading users...</p>
+              ) : usersError ? (
+                <p className="text-center text-red-500 py-8 px-4">{usersError}</p>
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => {
+                  const userMessages = messagesByUser[user.id] ?? [];
+                  const lastMsg = userMessages[userMessages.length - 1];
+
+                  return (
+                    <div
+                      key={user.id}
+                      onClick={() => setSelectedUser(user)}
+                      className={`flex items-center gap-3 p-4 hover:bg-gray-50 transition cursor-pointer border-b border-gray-50 ${
+                        selectedUser?.id === user.id ? "bg-blue-50" : ""
+                      }`}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                        />
+                        {user.isOnline && (
+                          <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+                        )}
+                        {user.isPremium && (
+                          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full p-1">
+                            <Crown size={10} className="text-white" fill="currentColor" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-semibold text-gray-800 truncate">{user.name}</p>
+                          {user.unreadCount! > 0 && (
+                            <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                              {user.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">
+                          {lastMsg ? lastMsg.text : user.lastMessage || "No messages yet"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getLevelColor(user.level)}`}>
+                            {user.level}
+                          </span>
+                          <span className="text-xs text-gray-400">{user.country}</span>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{user.lastMessage}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getLevelColor(user.level)}`}>
-                        {user.level}
-                      </span>
-                      <span className="text-xs text-gray-400">{user.country}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })
+              ) : (
+                <p className="text-center text-gray-500 py-8 px-4">No users found.</p>
+              )}
             </div>
           </div>
 
@@ -201,7 +433,13 @@ const ChatWithStrangersSection = () => {
 
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50/30 to-white">
-                {messages.map((msg) => (
+                {currentMessages.length === 0 && (
+                  <p className="text-center text-gray-400 text-sm py-8">
+                    No messages yet. Say hello to {selectedUser.name}!
+                  </p>
+                )}
+
+                {currentMessages.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.sender === "me" ? "justify-end" : "justify-start"} animate-fadeIn`}
@@ -231,7 +469,7 @@ const ChatWithStrangersSection = () => {
                     </div>
                   </div>
                 ))}
-                
+
                 {/* Typing Indicator for chat*/}
                 {isTyping && (
                   <div className="flex justify-start animate-fadeIn">
@@ -251,7 +489,7 @@ const ChatWithStrangersSection = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <div ref={messagesEndRef} />
               </div>
 

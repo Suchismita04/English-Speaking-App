@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Crown, Globe, Calendar, Mail, Award, Users } from "lucide-react";
 
 type User = {
@@ -19,6 +20,33 @@ type ProgressData = {
   weeklyProgress: { day: string; minutes: number; calls: number }[];
 };
 
+// Exact shape returned by /user/getUserProfile
+type ApiUserProfile = {
+  id: number;
+  user_name: string;
+  user_email: string;
+  password: string;
+  country: string | null;
+  gender: "Male" | "Female" | "Other" | null;
+  fluencyLevel: "Beginner" | "Intermediate" | "Advanced" | null;
+  isOnline: boolean;
+  isOffline: boolean;
+  onCall: boolean;
+  created_at: string;
+  updated_at: string;
+  socket_id: string | null;
+};
+
+type CurrentUser = {
+  name: string;
+  avatar: string;
+  email: string;
+  level: "Beginner" | "Intermediate" | "Advanced";
+  country: string;
+  memberSince: string;
+  isPremium: boolean;
+};
+
 const dummyUsers: User[] = [
   { id: "1", name: "Ariana", avatar: "/src/assets/images/testimonial1.png", isOnline: true, onCall: false, level: "Beginner", gender: "Female", country: "USA" },
   { id: "2", name: "David", avatar: "/src/assets/images/testimonial2.png", isOnline: true, onCall: true, level: "Intermediate", gender: "Male", country: "India" },
@@ -33,17 +61,69 @@ const progressData: ProgressData = {
   weeklyProgress: [],
 };
 
-const currentUser = {
-  name: "Alex Johnson",
-  avatar: "/src/assets/images/testimonial1.png",
-  email: "alex.johnson@email.com",
-  level: "Intermediate",
-  country: "USA",
-  memberSince: "January 2024",
-  isPremium: false,
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = `${RAW_BASE_URL}/api/v1`;
+
+const getDefaultAvatar = (gender: ApiUserProfile["gender"]) => {
+  if (gender === "Female") return "/src/assets/images/testimonial3.png";
+  if (gender === "Male") return "/src/assets/images/testimonial2.png";
+  return "/src/assets/images/testimonial1.png";
 };
 
+const formatMemberSince = (dateString: string) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+};
+
+const mapApiProfileToCurrentUser = (u: ApiUserProfile): CurrentUser => ({
+  name: u.user_name,
+  avatar: getDefaultAvatar(u.gender),
+  email: u.user_email,
+  level: u.fluencyLevel ?? "Beginner",
+  country: u.country ?? "Unknown",
+  memberSince: formatMemberSince(u.created_at),
+  isPremium: false, // not provided by API yet
+});
+
 const ProfileSection = () => {
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoadingProfile(true);
+      setProfileError(null);
+
+      try {
+        const accessToken = localStorage.getItem("access_token");
+
+        const response = await fetch(`${API_BASE_URL}/user/getUserProfile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile: ${response.status}`);
+        }
+
+        const data: ApiUserProfile = await response.json();
+        setCurrentUser(mapApiProfileToCurrentUser(data));
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        setProfileError(err instanceof Error ? err.message : "Something went wrong while fetching your profile.");
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
   const getLevelColor = (level: string) => {
     switch (level) {
       case "Beginner": return "bg-green-100 text-green-700";
@@ -53,11 +133,31 @@ const ProfileSection = () => {
     }
   };
 
+  if (loadingProfile) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-6 pt-20 lg:pt-6">
+        <div className="bg-white rounded-3xl shadow-xl p-8 text-center text-gray-500">
+          Loading profile...
+        </div>
+      </div>
+    );
+  }
+
+  if (profileError || !currentUser) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-6 pt-20 lg:pt-6">
+        <div className="bg-white rounded-3xl shadow-xl p-8 text-center text-red-500">
+          {profileError || "Unable to load profile."}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 pt-20 lg:pt-6">
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
         <div className="h-32 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
-        
+
         <div className="px-8 pb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16 mb-6">
             <div className="relative">
@@ -74,7 +174,7 @@ const ProfileSection = () => {
                 </svg>
               </button>
             </div>
-            
+
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-3xl font-bold text-gray-800 mb-1">{currentUser.name}</h2>
               <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
@@ -94,7 +194,7 @@ const ProfileSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
-              
+
               <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
                 <Mail className="text-blue-500" size={20} />
                 <div>
@@ -122,23 +222,23 @@ const ProfileSection = () => {
 
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-800">Quick Stats</h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl text-center">
                   <p className="text-2xl font-bold text-blue-600">{progressData.totalCalls}</p>
                   <p className="text-xs text-gray-600 mt-1">Total Calls</p>
                 </div>
-                
+
                 <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl text-center">
                   <p className="text-2xl font-bold text-purple-600">{progressData.totalHours}h</p>
                   <p className="text-xs text-gray-600 mt-1">Hours Practiced</p>
                 </div>
-                
+
                 <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl text-center">
                   <p className="text-2xl font-bold text-orange-600">{progressData.streak}</p>
                   <p className="text-xs text-gray-600 mt-1">Day Streak</p>
                 </div>
-                
+
                 <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl text-center">
                   <p className="text-2xl font-bold text-green-600">12</p>
                   <p className="text-xs text-gray-600 mt-1">Rooms Joined</p>
@@ -149,7 +249,7 @@ const ProfileSection = () => {
 
           <div className="border-t pt-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">Learning Preferences</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Topics</label>
