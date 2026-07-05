@@ -29,6 +29,12 @@ type ApiUser = {
   socket_id: string | null;
 };
 
+// Minimal shape needed from /user/getUserProfile (used to exclude self from the list)
+type ApiUserProfile = {
+  id: number;
+  user_name: string;
+};
+
 // Response shape from POST /audio-call/start
 type StartCallResponse = {
   message?: string;
@@ -77,12 +83,42 @@ const VideoCallSection = () => {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
+  // Logged-in user's own id, used to exclude self from the Online Users panel
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   // Audio call state
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const [connectingUserId, setConnectingUserId] = useState<string | null>(null);
   const [callError, setCallError] = useState<string | null>(null);
 
   const accessToken = localStorage.getItem("access_token");
+
+  // Fetch the logged-in user's own profile, so we can exclude them from the list
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/getUserProfile`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch current user: ${response.status}`);
+        }
+
+        const data: ApiUserProfile = await response.json();
+        setCurrentUserId(String(data.id));
+      } catch (err) {
+        console.error("Error fetching current user profile:", err);
+      }
+    };
+
+    fetchCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -116,13 +152,15 @@ const VideoCallSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(search.toLowerCase()) &&
-      (genderFilter === "All" || user.gender === genderFilter) &&
-      (levelFilter === "All" || user.level === levelFilter) &&
-      (countryFilter === "All" || user.country === countryFilter)
-  );
+  const filteredUsers = users
+    .filter((user) => user.id !== currentUserId) // exclude the logged-in user from the list
+    .filter(
+      (user) =>
+        user.name.toLowerCase().includes(search.toLowerCase()) &&
+        (genderFilter === "All" || user.gender === genderFilter) &&
+        (levelFilter === "All" || user.level === levelFilter) &&
+        (countryFilter === "All" || user.country === countryFilter)
+    );
 
   const startAudioCall = async (user: User) => {
     setCallError(null);
@@ -192,7 +230,7 @@ const VideoCallSection = () => {
   const handleRandomCall = () => {
     if (callMode !== "audio") return;
 
-    const candidates = users.filter((u) => u.isOnline && !u.onCall);
+    const candidates = filteredUsers.filter((u) => u.isOnline && !u.onCall);
     if (candidates.length === 0) {
       setCallError("No online users available for a random call right now.");
       return;
