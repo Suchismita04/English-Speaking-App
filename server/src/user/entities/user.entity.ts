@@ -66,6 +66,9 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   socket_id!: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  profile_picture!: string | null;
+
   @OneToMany(()=> ChatSession,session=>session.user)
   chatSessions!:ChatSession[]
 

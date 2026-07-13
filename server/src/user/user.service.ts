@@ -1,8 +1,9 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
 import { Repository } from "typeorm";
 import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
 import { v4 as uuidv4 } from 'uuid';
@@ -32,6 +33,31 @@ export class UserService {
     return savedUserWithoutPwd;
   }
 
+  async updateUser(userId: number, dto: UpdateUserDto): Promise<User> {
+    const existingUser = await this.userRepo.findOne({ where: { id: userId } });
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updatePayload = Object.fromEntries(
+      Object.entries(dto).filter(([, value]) => value !== undefined)
+    ) as Partial<User>;
+
+    if (dto.password) {
+      const salt = await bcrypt.genSalt();
+      updatePayload.password = await bcrypt.hash(dto.password, salt);
+    }
+
+    await this.userRepo.update({ id: userId }, updatePayload);
+
+    const updatedUser = await this.userRepo.findOne({ where: { id: userId } });
+    if (!updatedUser) {
+      throw new NotFoundException('User not found after update');
+    }
+
+    return plainToInstance(User, updatedUser);
+  }
+
   async getAllTypesOfUser(search?: string, gender?: string, fluencyLevel?: string, isOnline?: boolean): Promise<User[]> {
     const queryBuilder = this.userRepo.createQueryBuilder('user');
 
@@ -57,8 +83,33 @@ export class UserService {
     return await queryBuilder.getMany();
   }
 
+  async getUserProfile(userId: number): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return plainToInstance(User, user);
+  }
+
   async findById(userId: number): Promise<User | null> {
     return await this.userRepo.findOne({ where: { id: userId } });
+  }
+
+  async updateProfilePicture(userId: number, profilePicture: string): Promise<User> {
+    const existingUser = await this.userRepo.findOne({ where: { id: userId } });
+    if (!existingUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.userRepo.update({ id: userId }, { profile_picture: profilePicture });
+
+    const updatedUser = await this.userRepo.findOne({ where: { id: userId } });
+    if (!updatedUser) {
+      throw new NotFoundException('User not found after update');
+    }
+
+    return plainToInstance(User, updatedUser);
   }
 
   async updateSocketId(userId: number, socketId: string | null): Promise<void> {
