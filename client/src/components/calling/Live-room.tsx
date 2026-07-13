@@ -43,6 +43,35 @@ type CreateRoomResponse = {
   };
 };
 
+// Shape of the "createdBy" nested user object returned by /session-room/getListOfRooms
+type RoomCreator = {
+  id: number;
+  user_name: string;
+  user_email: string;
+  password: string;
+  country: string | null;
+  gender: "Male" | "Female" | "Other" | null;
+  fluencyLevel: "Beginner" | "Intermediate" | "Advanced" | null;
+  isOnline: boolean;
+  isOffline: boolean;
+  onCall: boolean;
+  created_at: string;
+  updated_at: string;
+  socket_id: string | null;
+};
+
+// Exact shape returned by GET /session-room/getListOfRooms
+type ApiRoom = {
+  id: number;
+  name: string;
+  description: string;
+  logo: string;
+  created_at: string;
+  updated_at: string;
+  created_by: number;
+  createdBy: RoomCreator;
+};
+
 const dummyUsers: User[] = [
   { id: "1", name: "Ariana", avatar: "/src/assets/images/testimonial1.png", isOnline: true, onCall: false, level: "Beginner", gender: "Female", country: "USA" },
   { id: "2", name: "David", avatar: "/src/assets/images/testimonial2.png", isOnline: true, onCall: true, level: "Intermediate", gender: "Male", country: "India" },
@@ -50,16 +79,20 @@ const dummyUsers: User[] = [
   { id: "4", name: "Carlos", avatar: "/src/assets/images/testimonial1.png", isOnline: true, onCall: false, level: "Intermediate", gender: "Male", country: "Spain" },
 ];
 
-const dummyRooms: Room[] = [
-  { id: "r1", name: "Daily English Practice", host: "Michael", participants: 8, maxParticipants: 15, level: "Beginner", topic: "Basic Conversation", isLive: true },
-  { id: "r2", name: "Business English Hub", host: "Sarah", participants: 12, maxParticipants: 20, level: "Advanced", topic: "Professional Communication", isLive: true },
-  { id: "r3", name: "Grammar Warriors", host: "James", participants: 5, maxParticipants: 10, level: "Intermediate", topic: "Grammar & Writing", isLive: true },
-  { id: "r4", name: "Movie Discussion Club", host: "Emma", participants: 15, maxParticipants: 25, level: "Mixed", topic: "Entertainment & Culture", isLive: true },
-];
-
 const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const API_BASE_URL = `${RAW_BASE_URL}/api/v1`;
 const DEFAULT_ROOM_LOGO = "https://exam.com/logo.png";
+
+const mapApiRoomToRoom = (r: ApiRoom): Room => ({
+  id: String(r.id),
+  name: r.name,
+  host: r.createdBy?.user_name ?? "Unknown",
+  participants: 0, // not provided by the API yet
+  maxParticipants: 10, // not provided by the API yet
+  level: r.createdBy?.fluencyLevel ?? "Mixed",
+  topic: r.description,
+  isLive: true,
+});
 
 const LiveRoomsSection = () => {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -69,7 +102,10 @@ const LiveRoomsSection = () => {
   const [roomDescription, setRoomDescription] = useState("");
   const [roomLogo, setRoomLogo] = useState("");
 
-  const [rooms, setRooms] = useState<Room[]>(dummyRooms);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
+
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [createRoomError, setCreateRoomError] = useState<string | null>(null);
@@ -100,6 +136,39 @@ const LiveRoomsSection = () => {
     };
 
     fetchCurrentUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch the list of session rooms
+  useEffect(() => {
+    const fetchRooms = async () => {
+      setLoadingRooms(true);
+      setRoomsError(null);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/session-room/getListOfRooms`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch rooms: ${response.status}`);
+        }
+
+        const data: ApiRoom[] = await response.json();
+        setRooms(data.map(mapApiRoomToRoom));
+      } catch (err) {
+        console.error("Error fetching rooms:", err);
+        setRoomsError(err instanceof Error ? err.message : "Something went wrong while fetching rooms.");
+      } finally {
+        setLoadingRooms(false);
+      }
+    };
+
+    fetchRooms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -290,60 +359,68 @@ const LiveRoomsSection = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms.map((room) => (
-          <div
-            key={room.id}
-            className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-6 border border-gray-100"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-800 mb-1">{room.name}</h3>
-                <p className="text-sm text-gray-500 flex items-center gap-1">
-                  <UserIcon size={14} />
-                  Hosted by {room.host}
-                </p>
-              </div>
-              {room.isLive && (
-                <span className="flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-semibold">
-                  <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
-                  LIVE
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center gap-2">
-                <MessageCircle size={16} className="text-gray-400" />
-                <span className="text-sm text-gray-600">{room.topic}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelColor(room.level)}`}>
-                  {room.level}
-                </span>
-                <span className="text-sm text-gray-600">
-                  {room.participants}/{room.maxParticipants} participants
-                </span>
-              </div>
-            </div>
-
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div
-                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
-                style={{ width: `${(room.participants / room.maxParticipants) * 100}%` }}
-              ></div>
-            </div>
-
-            <button
-              onClick={() => handleJoinRoom(room.id)}
-              disabled={room.participants >= room.maxParticipants}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
+      {loadingRooms ? (
+        <p className="text-center text-gray-500 py-12">Loading rooms...</p>
+      ) : roomsError ? (
+        <p className="text-center text-red-500 py-12">{roomsError}</p>
+      ) : rooms.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rooms.map((room) => (
+            <div
+              key={room.id}
+              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition p-6 border border-gray-100"
             >
-              {room.participants >= room.maxParticipants ? "Room Full" : "Join Room"}
-            </button>
-          </div>
-        ))}
-      </div>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-800 mb-1">{room.name}</h3>
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    <UserIcon size={14} />
+                    Hosted by {room.host}
+                  </p>
+                </div>
+                {room.isLive && (
+                  <span className="flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-semibold">
+                    <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                    LIVE
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={16} className="text-gray-400" />
+                  <span className="text-sm text-gray-600">{room.topic}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getLevelColor(room.level)}`}>
+                    {room.level}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {room.participants}/{room.maxParticipants} participants
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                  style={{ width: `${(room.participants / room.maxParticipants) * 100}%` }}
+                ></div>
+              </div>
+
+              <button
+                onClick={() => handleJoinRoom(room.id)}
+                disabled={room.participants >= room.maxParticipants}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
+              >
+                {room.participants >= room.maxParticipants ? "Room Full" : "Join Room"}
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-gray-500 py-12">No live rooms yet. Be the first to create one!</p>
+      )}
     </div>
   );
 };
