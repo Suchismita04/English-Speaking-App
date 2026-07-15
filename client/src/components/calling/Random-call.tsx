@@ -252,8 +252,8 @@ const VideoCallSection = () => {
         {/* Call Mode Selector */}
         <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">Choose Your Call Type</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Audio Call Option - FREE */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Audio Call Option - FREE (expanded to full width to fill the space freed by the hidden Video Call option) */}
             <button
               onClick={() => setCallMode("audio")}
               className={`relative p-6 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -285,7 +285,7 @@ const VideoCallSection = () => {
               </p>
             </button>
 
-            {/* Video Call Option - PREMIUM */}
+            {/* Video Call Option - PREMIUM — temporarily hidden per request, code kept intact below
             <button
               onClick={() => setCallMode("video")}
               className={`relative p-6 rounded-2xl border-2 transition-all cursor-pointer ${
@@ -316,10 +316,11 @@ const VideoCallSection = () => {
                 Face-to-face conversations for better learning. Upgrade to premium to unlock this feature.
               </p>
             </button>
+            */}
           </div>
         </div>
 
-        {/* Video Call Premium Banner */}
+        {/* Video Call Premium Banner — temporarily hidden per request, code kept intact below
         {callMode === "video" && (
           <div className="w-full max-w-5xl bg-gradient-to-r from-yellow-400 via-pink-400 to-red-400 text-white px-6 py-4 rounded-2xl shadow-xl">
             <div className="flex items-center justify-between gap-4">
@@ -337,6 +338,7 @@ const VideoCallSection = () => {
             </div>
           </div>
         )}
+        */}
 
         {/* Call error banner */}
         {callError && (
@@ -392,6 +394,8 @@ const VideoCallSection = () => {
                   </>
                 )
               ) : (
+                // Video Call - Premium Feature branch — kept intact; unreachable now since the Video Call
+                // mode option above is commented out, so callMode can no longer become "video"
                 <>
                   <div className="mb-4 p-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full inline-block opacity-50">
                     <Video size={48} className="text-white" />
@@ -530,6 +534,7 @@ const VideoCallSection = () => {
                       <Phone size={14} />
                       {isThisUserInCall ? "In Call" : isThisUserConnecting ? "Connecting..." : "Audio"}
                     </button>
+                    {/* Video call button — temporarily hidden per request, code kept intact below
                     <button
                       onClick={() => handleCall(user.id, "video")}
                       disabled
@@ -539,6 +544,7 @@ const VideoCallSection = () => {
                       <Video size={14} />
                       Video 🔒
                     </button>
+                    */}
                   </div>
                 </div>
               );
