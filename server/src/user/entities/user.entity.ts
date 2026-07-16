@@ -69,6 +69,12 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   profile_picture!: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  reset_token!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reset_token_expires!: Date | null;
+
   @OneToMany(()=> ChatSession,session=>session.user)
   chatSessions!:ChatSession[]
 

@@ -1,9 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/user.entity";
 import { Repository } from "typeorm";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from "class-transformer";
 import { v4 as uuidv4 } from 'uuid';
@@ -114,6 +116,85 @@ export class UserService {
 
   async updateSocketId(userId: number, socketId: string | null): Promise<void> {
     await this.userRepo.update({ id: userId }, { socket_id: socketId });
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string; resetToken: string }> {
+    console.log('Forgot password for email:', dto.email);
+
+    const user = await this.userRepo.findOne({ where: { user_email: dto.email } });
+
+    // console.log('User found by email:', !!user);
+    // console.log('User ID:', user?.id);
+    // console.log('User username:', user?.user_name);
+
+    if (!user) {
+      throw new NotFoundException('User with this email does not exist');
+    }
+
+    const resetToken = uuidv4();
+    const resetTokenExpires = new Date();
+    resetTokenExpires.setHours(resetTokenExpires.getHours() + 1);
+
+    await this.userRepo.update(
+      { id: user.id },
+      {
+        reset_token: resetToken,
+        reset_token_expires: resetTokenExpires,
+      }
+    );
+
+    return {
+      message: 'Password reset token generated. Use this token to reset your password.',
+      resetToken: resetToken,
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
+    // console.log('Reset password attempt with token:', dto.token);
+
+    if (!dto.newPassword || dto.newPassword.trim() === '') {
+      throw new BadRequestException('New password is required');
+    }
+
+    const user = await this.userRepo.findOne({
+      where: { reset_token: dto.token },
+    });
+
+    // console.log('User found by token:', !!user);
+
+    if (!user) {
+      throw new NotFoundException('Invalid or expired reset token');
+    }
+
+    if (!user.reset_token_expires || user.reset_token_expires < new Date()) {
+      throw new NotFoundException('Reset token has expired');
+    }
+
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(dto.newPassword, salt);
+
+    console.log('New password to hash:', dto.newPassword);
+    console.log('Generated hash (first 20 chars):', hashedPassword.substring(0, 20));
+    console.log('Verifying hash immediately:', bcrypt.compareSync(dto.newPassword, hashedPassword));
+
+    // console.log('Updating password for user ID:', user.id);
+
+    const updateResult = await this.userRepo.update(
+      { id: user.id },
+      {
+        password: hashedPassword,
+        reset_token: null,
+        reset_token_expires: null,
+      }
+    );
+
+    // console.log('Update result:', updateResult);
+
+    // Verify the update
+    const updatedUser = await this.userRepo.findOne({ where: { id: user.id } });
+    // console.log('Password after update (first 20 chars):', updatedUser?.password?.substring(0, 20));
+
+    return { message: 'Password reset successfully' };
   }
 
 }

@@ -18,18 +18,31 @@ export class AuthService {
     ) { }
 
     async signIn(username: string, plainPassword: string): Promise<any> {
+        console.log('Login attempt for username:', username);
+
+        const allUsers = await this.userRepo.find({ where: { user_name: username } });
+        console.log('All users with this username:', allUsers.length);
+
         const user = await this.userRepo.findOne({
             where: { user_name: username }
         });
 
+        console.log('User found:', !!user);
+        console.log('User ID:', user?.id);
+
         if (!user) {
-            throw new UnauthorizedException();
+            throw new UnauthorizedException('User not found');
         }
+
+        console.log('Plain password:', plainPassword);
+        console.log('Stored password (first 20 chars):', user?.password?.substring(0, 20));
 
         const hasMatched = bcrypt.compareSync(plainPassword, user?.password);
 
+        console.log('Password match:', hasMatched);
+
         if (!hasMatched) {
-            throw new UnauthorizedException();
+            throw new UnauthorizedException('Invalid password');
         }
 
         // JWT authentication
