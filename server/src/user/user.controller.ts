@@ -6,6 +6,8 @@ import { existsSync, mkdirSync } from "fs";
 import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guards";
 
 const uploadDir = join(process.cwd(), 'uploads', 'profile-pictures');
@@ -75,5 +77,15 @@ export class UserController {
     ) {
         const isOnlineBool = isOnline === 'true' ? true : isOnline === 'false' ? false : undefined;
         return await this.userService.getAllTypesOfUser(search, gender, fluencyLevel, isOnlineBool)
+    }
+
+    @Post('forgot-password')
+    async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+        return await this.userService.forgotPassword(forgotPasswordDto);
+    }
+
+    @Post('reset-password')
+    async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+        return await this.userService.resetPassword(resetPasswordDto);
     }
 }
