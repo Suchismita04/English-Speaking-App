@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, User as UserIcon, MessageCircle } from "lucide-react";
+import { Plus, User as UserIcon, MessageCircle, ArrowLeft, Mic, MicOff, PhoneOff, Users } from "lucide-react";
 
 type User = {
   id: string;
@@ -21,6 +21,18 @@ type Room = {
   level: "Beginner" | "Intermediate" | "Advanced" | "Mixed";
   topic: string;
   isLive: boolean;
+};
+
+// A participant as shown inside the joined-room view. "You" is added on join,
+// the rest are filled in from the dummy user pool since the API doesn't
+// return a real participant list yet.
+type RoomParticipant = {
+  id: string;
+  name: string;
+  avatar: string;
+  isOnline: boolean;
+  isMuted: boolean;
+  isYou: boolean;
 };
 
 // Minimal shape needed from /user/getUserProfile (used to know the current user's id)
@@ -94,6 +106,19 @@ const mapApiRoomToRoom = (r: ApiRoom): Room => ({
   isLive: true,
 });
 
+// Formats elapsed seconds as mm:ss (or h:mm:ss once past an hour) for the
+// "room running for..." timer shown inside the joined room.
+const formatElapsed = (totalSeconds: number) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+};
+
 const LiveRoomsSection = () => {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -109,6 +134,13 @@ const LiveRoomsSection = () => {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [createRoomError, setCreateRoomError] = useState<string | null>(null);
+
+  // Joined-room view state — set once the user taps "Join Room"
+  const [joinedRoom, setJoinedRoom] = useState<Room | null>(null);
+  const [roomParticipants, setRoomParticipants] = useState<RoomParticipant[]>([]);
+  const [joinedAt, setJoinedAt] = useState<Date | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isSelfMuted, setIsSelfMuted] = useState(false);
 
   const accessToken = localStorage.getItem("access_token");
 
@@ -172,8 +204,82 @@ const LiveRoomsSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Ticks the "room running for..." timer once a second while inside a joined room
+  useEffect(() => {
+    if (!joinedRoom || !joinedAt) return;
+
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - joinedAt.getTime()) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [joinedRoom, joinedAt]);
+
   const handleJoinRoom = (roomId: string) => {
+    const room = rooms.find((r) => r.id === roomId);
+    if (!room) return;
+    if (room.participants >= room.maxParticipants) return;
+
     console.log("Joining room:", roomId);
+
+    // Since the API doesn't return a real participant list yet, seed the
+    // joined-room view with a slice of the dummy pool plus the current user.
+    const seededParticipants: RoomParticipant[] = dummyUsers
+      .slice(0, Math.max(room.participants, 0))
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        isOnline: u.isOnline,
+        isMuted: false,
+        isYou: false,
+      }));
+
+    seededParticipants.push({
+      id: "you",
+      name: "You",
+      avatar: "/src/assets/images/testimonial1.png",
+      isOnline: true,
+      isMuted: false,
+      isYou: true,
+    });
+
+    setRoomParticipants(seededParticipants);
+    setJoinedRoom(room);
+    setJoinedAt(new Date());
+    setElapsedSeconds(0);
+    setIsSelfMuted(false);
+
+    // Reflect the new participant count on the room card behind the scenes,
+    // so "Room Full" and the progress bar stay accurate once the user leaves.
+    setRooms((prev) =>
+      prev.map((r) =>
+        r.id === roomId ? { ...r, participants: Math.min(r.participants + 1, r.maxParticipants) } : r
+      )
+    );
+  };
+
+  const handleLeaveRoom = () => {
+    if (!joinedRoom) return;
+
+    setRooms((prev) =>
+      prev.map((r) =>
+        r.id === joinedRoom.id ? { ...r, participants: Math.max(r.participants - 1, 0) } : r
+      )
+    );
+
+    setJoinedRoom(null);
+    setRoomParticipants([]);
+    setJoinedAt(null);
+    setElapsedSeconds(0);
+    setIsSelfMuted(false);
+  };
+
+  const toggleSelfMute = () => {
+    setIsSelfMuted((prev) => !prev);
+    setRoomParticipants((prev) =>
+      prev.map((p) => (p.isYou ? { ...p, isMuted: !p.isMuted } : p))
+    );
   };
 
   const resetCreateRoomForm = () => {
@@ -254,6 +360,128 @@ const LiveRoomsSection = () => {
       default: return "bg-gray-100 text-gray-700";
     }
   };
+
+  // --- Joined room view --------------------------------------------------
+  // Shown instead of the room list once the user taps "Join Room". Keeps the
+  // same visual language (gradient buttons, rounded-2xl cards) as the rest
+  // of the page.
+  if (joinedRoom) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6 pt-20 lg:pt-6">
+        <button
+          onClick={handleLeaveRoom}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition cursor-pointer"
+        >
+          <ArrowLeft size={18} />
+          Back to Live Rooms
+        </button>
+
+        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Room banner */}
+          <div className="p-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-2xl font-bold">{joinedRoom.name}</h2>
+                  {joinedRoom.isLive && (
+                    <span className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full text-xs font-semibold">
+                      <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                      LIVE • {formatElapsed(elapsedSeconds)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/90 text-sm flex items-center gap-1">
+                  <UserIcon size={14} />
+                  Hosted by {joinedRoom.host}
+                </p>
+                <p className="text-white/80 text-sm mt-1 flex items-center gap-1">
+                  <MessageCircle size={14} />
+                  {joinedRoom.topic}
+                </p>
+              </div>
+              <span className={`self-start px-3 py-1 rounded-full text-xs font-semibold bg-white/20`}>
+                {joinedRoom.level} level
+              </span>
+            </div>
+          </div>
+
+          {/* Participants */}
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <Users size={18} className="text-gray-500" />
+                Participants ({roomParticipants.length}/{joinedRoom.maxParticipants})
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              {roomParticipants.map((participant) => (
+                <div
+                  key={participant.id}
+                  className={`flex items-center gap-3 p-3 rounded-xl border-2 ${
+                    participant.isYou ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-transparent"
+                  }`}
+                >
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={participant.avatar}
+                      alt={participant.name}
+                      className="w-10 h-10 rounded-full object-cover border border-gray-300"
+                    />
+                    {participant.isOnline && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-gray-800 truncate">
+                      {participant.name}
+                      {participant.isYou && <span className="text-xs text-purple-600 font-medium"> (you)</span>}
+                    </p>
+                    <p className="text-xs text-gray-500">{participant.isOnline ? "In room" : "Offline"}</p>
+                  </div>
+                  {participant.isMuted ? (
+                    <MicOff size={16} className="text-gray-400" />
+                  ) : (
+                    <Mic size={16} className="text-green-500" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Room status bar */}
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                style={{ width: `${(roomParticipants.length / joinedRoom.maxParticipants) * 100}%` }}
+              ></div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={toggleSelfMute}
+                className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition hover:scale-105 cursor-pointer ${
+                  isSelfMuted
+                    ? "bg-gray-200 text-gray-700"
+                    : "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                }`}
+              >
+                {isSelfMuted ? <MicOff size={18} /> : <Mic size={18} />}
+                {isSelfMuted ? "Unmute" : "Mute"}
+              </button>
+              <button
+                onClick={handleLeaveRoom}
+                className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:scale-105 transition cursor-pointer"
+              >
+                <PhoneOff size={18} />
+                Leave Room
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 pt-20 lg:pt-6">

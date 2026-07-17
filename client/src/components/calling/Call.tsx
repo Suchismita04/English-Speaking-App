@@ -20,7 +20,7 @@ const Call = () => {
 
   const navItems = [
     { id: "call" as const, label: "Talk with Strangers", icon: PhoneCall },
-    { id: "chat" as const, label: "Chat with Strangers", icon: MessageCircle },
+    { id: "chat" as const, label: "Chat with AI", icon: MessageCircle },
     { id: "rooms" as const, label: "Live Rooms", icon: Users },
     { id: "progress" as const, label: "Progress", icon: TrendingUp },
     { id: "history" as const, label: "Call History", icon: History },
